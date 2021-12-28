@@ -1,6 +1,6 @@
 # goldmark-markdown
 
-[![GoDoc](https://godoc.org/github.com/cyphus/goldmark-markdown?status.svg)](https://godoc.org/github.com/cyphus/goldmark-markdown)
+[![GoDoc](https://godoc.org/github.com/teekennedy/goldmark-markdown?status.svg)](https://godoc.org/github.com/teekennedy/goldmark-markdown) [![CI](https://github.com/teekennedy/update-a-changelog/actions/workflows/ci.yml/badge.svg)](https://github.com/teekennedy/update-a-changelog/actions/workflows/ci.yml) [![Coverage Status](https://coveralls.io/repos/github/teekennedy/goldmark-markdown/badge.svg?branch=main)](https://coveralls.io/github/teekennedy/goldmark-markdown?branch=main)
 
 Goldmark-markdown ia a [goldmark] extension that renders and formats markdown.
 It can be used directly as an auto-formatter for markdown source, or extended
@@ -22,4 +22,4 @@ TODO
 
 [goldmark]: https://github.com/yuin/goldmark
 [AST]: https://pkg.go.dev/github.com/yuin/goldmark/ast
-[update-a-changelog]: https://github.com/cyphus/update-a-changelog
+[update-a-changelog]: https://github.com/teekennedy/update-a-changelog
