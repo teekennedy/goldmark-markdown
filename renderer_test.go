@@ -88,6 +88,25 @@ var testCases = []struct {
 		"Foo\nBar\n---",
 		"Foo\nBar\n---",
 	},
+	// Code Block
+	{
+		"Space indented code block",
+		[]Option{},
+		"    foo",
+		"    foo",
+	},
+	{
+		"Tab indented code block",
+		[]Option{WithIndentStyle(IndentStyleTabs)},
+		"    foo",
+		"\tfoo",
+	},
+	{
+		"Multiline code block",
+		[]Option{WithIndentStyle(IndentStyleSpaces)},
+		"\tfoo\n\tbar\n\tbaz",
+		"    foo\n    bar\n    baz",
+	},
 }
 
 // TestRenderedOutput tests that the renderer produces the expected output for all test cases
