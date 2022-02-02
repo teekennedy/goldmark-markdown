@@ -81,9 +81,9 @@ const optIndentStyle goldrenderer.OptionName = "IndentStyle"
 type IndentStyle int
 
 const (
-	// Indent with spaces. This is the default as well as the zero-value.
+	// IndentStyleSpaces indents with 4 spaces. This is the default as well as the zero-value.
 	IndentStyleSpaces = iota
-	// Indent with tabs.
+	// IndentStyleTabs indents with tabs.
 	IndentStyleTabs
 )
 
