@@ -2,7 +2,6 @@ package renderer
 
 import (
 	"fmt"
-	"io"
 	"strings"
 
 	"github.com/yuin/goldmark/ast"
@@ -185,12 +184,6 @@ type Renderer struct {
 	Config
 }
 
-// Render implements goldrenderer.Render
-func (r *Renderer) Render(w io.Writer, source []byte, n ast.Node) error {
-	w.Write(n.Text(source))
-	return nil
-}
-
 // RegisterFuncs implements NodeRenderer.RegisterFuncs.
 func (r *Renderer) RegisterFuncs(reg goldrenderer.NodeRendererFuncRegisterer) {
 	// blocks
@@ -280,7 +273,7 @@ func (r *Renderer) renderSetextHeading(w util.BufWriter, source []byte, node ast
 func (r *Renderer) renderString(w util.BufWriter, source []byte, node ast.Node, entering bool) (ast.WalkStatus, error) {
 	n := node.(*ast.String)
 	if entering {
-		w.Write(n.Value)
+		_, _ = w.Write(n.Value)
 	}
 	return ast.WalkContinue, nil
 }
@@ -288,7 +281,7 @@ func (r *Renderer) renderString(w util.BufWriter, source []byte, node ast.Node, 
 func (r *Renderer) renderText(w util.BufWriter, source []byte, node ast.Node, entering bool) (ast.WalkStatus, error) {
 	n := node.(*ast.Text)
 	if entering {
-		w.Write(n.Segment.Value(source))
+		_, _ = w.Write(n.Segment.Value(source))
 	}
 	return ast.WalkContinue, nil
 }
@@ -299,8 +292,8 @@ func (r *Renderer) renderCodeBlock(w util.BufWriter, source []byte, node ast.Nod
 		l := n.Lines().Len()
 		for i := 0; i < l; i++ {
 			line := n.Lines().At(i)
-			w.Write(r.IndentStyle.bytes())
-			w.Write(line.Value(source))
+			_, _ = w.Write(r.IndentStyle.bytes())
+			_, _ = w.Write(line.Value(source))
 		}
 	}
 	return ast.WalkContinue, nil
