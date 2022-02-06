@@ -89,15 +89,21 @@ const optHeadingStyle renderer.OptionName = "HeadingStyle"
 type HeadingStyle int
 
 const (
-	// HeadingStyleATX is the #-based style. This is the default heading style.
+	// HeadingStyleATX is the #-based style. This is the default heading style and zero value.
+	// Ex: ## Foo
 	HeadingStyleATX = iota
-	// HeadingStyleATXSurround adds closing #s after your header. Ex: '## Foo ##'.
+	// HeadingStyleATXSurround adds closing #s after your header.
+	// Ex: ## Foo ##
 	HeadingStyleATXSurround
 	// HeadingStyleSetext uses setext heading underlines ('===' or '---') for heading levels 1 and
 	// 2, respectively. Other header levels continue to use ATX headings.
+	// Ex: Foo Bar
+	//     ---
 	HeadingStyleSetext
 	// HeadingStyleFullWidthSetext extends setext heading underlines to the full width of the
 	// header text.
+	// Ex: Foo Bar
+	//     -------
 	HeadingStyleFullWidthSetext
 )
 

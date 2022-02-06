@@ -10,7 +10,7 @@ import (
 	"github.com/yuin/goldmark/util"
 )
 
-// NewNodeRenderer returns a new renderer.NodeRenderer that is configured by default values.
+// NewNodeRenderer returns a new markdown Renderer that is configured by default values.
 func NewNodeRenderer(options ...Option) renderer.NodeRenderer {
 	r := &Renderer{
 		Config: NewConfig(),
@@ -21,14 +21,13 @@ func NewNodeRenderer(options ...Option) renderer.NodeRenderer {
 	return r
 }
 
-// NewRenderer returns a new renderer.Renderer that is configured by default values.
+// NewRenderer returns a new renderer.Renderer containing a markdown NodeRenderer with defaults.
 func NewRenderer(options ...Option) renderer.Renderer {
 	r := NewNodeRenderer(options...)
 	return renderer.NewRenderer(renderer.WithNodeRenderers(util.Prioritized(r, 1000)))
 }
 
-// The Renderer struct is an implementation of renderer that renders nodes
-// as Markdown
+// Renderer is an implementation of renderer.Renderer that renders nodes as Markdown
 type Renderer struct {
 	Config
 }

@@ -44,21 +44,22 @@ func TestRendererOptions(t *testing.T) {
 			assert := assert.New(t)
 
 			// Set options by passing them directly to NewNodeRenderer
-			node_renderer := NewNodeRenderer(tc.options...).(*Renderer)
-			assert.Equal(tc.expected, node_renderer.Config)
+			nodeRenderer := NewNodeRenderer(tc.options...).(*Renderer)
+			assert.Equal(tc.expected, nodeRenderer.Config)
 
 			// Set options by name using goldmark's renderer.AddOptions
-			node_renderer = NewNodeRenderer().(*Renderer)
-			r := renderer.NewRenderer(renderer.WithNodeRenderers(util.Prioritized(node_renderer, 1000)))
+			nodeRenderer = NewNodeRenderer().(*Renderer)
+			r := renderer.NewRenderer(renderer.WithNodeRenderers(util.Prioritized(nodeRenderer, 1000)))
 			// Convert markdown Option interface to renderer.Option interface
-			renderer_options := make([]renderer.Option, len(tc.options), len(tc.options))
+			rendererOptions := make([]renderer.Option, len(tc.options))
 			for i, o := range tc.options {
-				renderer_options[i] = o
+				rendererOptions[i] = o
 			}
-			r.AddOptions(renderer_options...)
+			r.AddOptions(rendererOptions...)
 			// Must call Render() to apply options
-			r.Render(&bytes.Buffer{}, []byte{}, ast.NewDocument())
-			assert.Equal(tc.expected, node_renderer.Config)
+			err := r.Render(&bytes.Buffer{}, []byte{}, ast.NewDocument())
+			assert.NoError(err)
+			assert.Equal(tc.expected, nodeRenderer.Config)
 		})
 	}
 }
