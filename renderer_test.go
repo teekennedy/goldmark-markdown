@@ -1,4 +1,4 @@
-package renderer
+package markdown
 
 import (
 	"bytes"
@@ -63,7 +63,7 @@ var testCases = []struct {
 		"FooBar\n---",
 	},
 	{
-		"ATX to setext heading",
+		"ATX to full width setext heading",
 		[]Option{WithHeadingStyle(HeadingStyleFullWidthSetext)},
 		"Foo Bar\n---",
 		"Foo Bar\n-------",
@@ -73,6 +73,12 @@ var testCases = []struct {
 		[]Option{WithHeadingStyle(HeadingStyleATXSurround)},
 		"## Foo",
 		"## Foo ##",
+	},
+	{
+		"Empty ATX heading with closing sequence",
+		[]Option{WithHeadingStyle(HeadingStyleATXSurround)},
+		"##",
+		"## ##",
 	},
 	{
 		// Setext headings cannot be empty, will always be ATX
