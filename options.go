@@ -4,16 +4,24 @@ import "github.com/yuin/goldmark/renderer"
 
 // Config struct holds configurations for the markdown based renderer.
 type Config struct {
-	IndentStyle  IndentStyle
-	HeadingStyle HeadingStyle
+	IndentStyle         IndentStyle
+	HeadingStyle        HeadingStyle
+	ThematicBreakStyle  ThematicBreakStyle
+	ThematicBreakLength ThematicBreakLength
 }
 
-// NewConfig returns a new Config with defaults.
-func NewConfig() Config {
-	return Config{
-		IndentStyle:  IndentStyle(IndentStyleSpaces),
-		HeadingStyle: HeadingStyle(HeadingStyleATX),
+// NewConfig returns a new Config with defaults and the given options.
+func NewConfig(options ...Option) Config {
+	c := Config{
+		IndentStyle:         IndentStyle(IndentStyleSpaces),
+		HeadingStyle:        HeadingStyle(HeadingStyleATX),
+		ThematicBreakStyle:  ThematicBreakStyle(ThematicBreakStyleDashed),
+		ThematicBreakLength: ThematicBreakLength(ThematicBreakLengthMinimum),
 	}
+	for _, opt := range options {
+		opt.SetMarkdownOption(&c)
+	}
+	return c
 }
 
 // SetOption implements renderer.SetOptioner.SetOption.
@@ -23,6 +31,10 @@ func (c *Config) SetOption(name renderer.OptionName, value interface{}) {
 		c.IndentStyle = value.(IndentStyle)
 	case optHeadingStyle:
 		c.HeadingStyle = value.(HeadingStyle)
+	case optThematicBreakStyle:
+		c.ThematicBreakStyle = value.(ThematicBreakStyle)
+	case optThematicBreakLength:
+		c.ThematicBreakLength = value.(ThematicBreakLength)
 	}
 }
 
@@ -69,8 +81,7 @@ func (o *withIndentStyle) SetMarkdownOption(c *Config) {
 	c.IndentStyle = o.value
 }
 
-// WithIndentStyle is a functional option that sets the string used to indent
-// markdown blocks.
+// WithIndentStyle is a functional option that sets the string used to indent markdown blocks.
 func WithIndentStyle(style IndentStyle) interface {
 	renderer.Option
 	Option
@@ -125,11 +136,92 @@ func (o *withHeadingStyle) SetMarkdownOption(c *Config) {
 	c.HeadingStyle = o.value
 }
 
-// WithHeadingStyle is a functional option that sets the string used to indent
-// markdown blocks.
+// WithHeadingStyle is a functional option that sets the style of markdown headings.
 func WithHeadingStyle(style HeadingStyle) interface {
 	renderer.Option
 	Option
 } {
 	return &withHeadingStyle{style}
+}
+
+// ============================================================================
+// ThematicBreakStyle Option
+// ============================================================================
+
+// optThematicBreakStyle is an option name used in WithThematicBreakStyle
+const optThematicBreakStyle renderer.OptionName = "ThematicBreakStyle"
+
+// ThematicBreakStyle is an enum expressing the character used for thematic breaks.
+type ThematicBreakStyle int
+
+const (
+	// ThematicBreakStyleDashed uses '-' character for thematic breaks. This is the default and
+	// zero value.
+	// Ex: ---
+	ThematicBreakStyleDashed = iota
+	// ThematicBreakStyleStarred uses '*' character for thematic breaks.
+	// Ex: ***
+	ThematicBreakStyleStarred
+	// ThematicBreakStyleUnderlined uses '_' character for thematic breaks.
+	// Ex: ___
+	ThematicBreakStyleUnderlined
+)
+
+type withThematicBreakStyle struct {
+	value ThematicBreakStyle
+}
+
+func (o *withThematicBreakStyle) SetConfig(c *renderer.Config) {
+	c.Options[optThematicBreakStyle] = o.value
+}
+
+// SetMarkdownOption implements renderer.Option
+func (o *withThematicBreakStyle) SetMarkdownOption(c *Config) {
+	c.ThematicBreakStyle = o.value
+}
+
+// WithThematicBreakStyle is a functional option that sets the character used for thematic breaks.
+func WithThematicBreakStyle(style ThematicBreakStyle) interface {
+	renderer.Option
+	Option
+} {
+	return &withThematicBreakStyle{style}
+}
+
+// ============================================================================
+// ThematicBreakLength Option
+// ============================================================================
+
+// optThematicBreakLength is an option name used in WithThematicBreakLength
+const optThematicBreakLength renderer.OptionName = "ThematicBreakLength"
+
+// ThematicBreakLength configures the character length of thematic breaks
+type ThematicBreakLength int
+
+const (
+	// ThematicBreakLengthMinimum is the minimum length of a thematic break. This is the default.
+	// Any lengths less than this minimum are converted to the minimum.
+	// Ex: ---
+	ThematicBreakLengthMinimum = 3
+)
+
+type withThematicBreakLength struct {
+	value ThematicBreakLength
+}
+
+func (o *withThematicBreakLength) SetConfig(c *renderer.Config) {
+	c.Options[optThematicBreakLength] = o.value
+}
+
+// SetMarkdownOption implements renderer.Option
+func (o *withThematicBreakLength) SetMarkdownOption(c *Config) {
+	c.ThematicBreakLength = o.value
+}
+
+// WithThematicBreakLength is a functional option that sets the length of thematic breaks.
+func WithThematicBreakLength(style ThematicBreakLength) interface {
+	renderer.Option
+	Option
+} {
+	return &withThematicBreakLength{style}
 }

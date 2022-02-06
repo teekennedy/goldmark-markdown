@@ -40,6 +40,7 @@ func (r *Renderer) RegisterFuncs(reg renderer.NodeRendererFuncRegisterer) {
 	reg.Register(ast.KindHeading, r.renderHeading)
 	reg.Register(ast.KindCodeBlock, r.renderCodeBlock)
 	reg.Register(ast.KindParagraph, r.renderParagraph)
+	reg.Register(ast.KindThematicBreak, r.renderThematicBreak)
 	/* TODO
 	reg.Register(ast.KindBlockquote, r.renderBlockquote)
 	reg.Register(ast.KindFencedCodeBlock, r.renderFencedCodeBlock)
@@ -47,7 +48,6 @@ func (r *Renderer) RegisterFuncs(reg renderer.NodeRendererFuncRegisterer) {
 	reg.Register(ast.KindList, r.renderList)
 	reg.Register(ast.KindListItem, r.renderListItem)
 	reg.Register(ast.KindTextBlock, r.renderTextBlock)
-	reg.Register(ast.KindThematicBreak, r.renderThematicBreak)
 	*/
 
 	// inlines
@@ -135,6 +135,21 @@ func (r *Renderer) renderText(w util.BufWriter, source []byte, node ast.Node, en
 		if n.SoftLineBreak() {
 			_, _ = w.Write([]byte("\n"))
 		}
+	}
+	return ast.WalkContinue, nil
+}
+
+func (r *Renderer) renderThematicBreak(w util.BufWriter, source []byte, node ast.Node, entering bool) (ast.WalkStatus, error) {
+	if entering {
+		breakChar := [...]string{"-", "*", "_"}[r.ThematicBreakStyle]
+		var breakLen int
+		if r.ThematicBreakLength < ThematicBreakLengthMinimum {
+			breakLen = int(ThematicBreakLengthMinimum)
+		} else {
+			breakLen = int(r.ThematicBreakLength)
+		}
+		thematicBreak := []byte(strings.Repeat(breakChar, breakLen))
+		_, _ = w.Write(thematicBreak)
 	}
 	return ast.WalkContinue, nil
 }

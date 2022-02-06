@@ -23,19 +23,24 @@ func TestRendererOptions(t *testing.T) {
 			NewConfig(),
 		},
 		{
-			"Zero values",
-			[]Option{},
-			Config{},
-		},
-		{
 			"Explicit defaults",
-			[]Option{WithIndentStyle(IndentStyleSpaces), WithHeadingStyle(HeadingStyleATX)},
+			[]Option{
+				WithIndentStyle(IndentStyleSpaces),
+				WithHeadingStyle(HeadingStyleATX),
+				WithThematicBreakStyle(ThematicBreakStyleDashed),
+				WithThematicBreakLength(ThematicBreakLengthMinimum),
+			},
 			NewConfig(),
 		},
 		{
 			"Tab indent",
 			[]Option{WithIndentStyle(IndentStyleTabs)},
-			Config{IndentStyle: IndentStyle(IndentStyleTabs)},
+			NewConfig(WithIndentStyle(IndentStyleTabs)),
+		},
+		{
+			"Underlined thematic breaks",
+			[]Option{WithThematicBreakStyle(ThematicBreakStyleUnderlined)},
+			NewConfig(WithThematicBreakStyle(ThematicBreakStyleUnderlined)),
 		},
 	}
 

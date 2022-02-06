@@ -115,7 +115,7 @@ func TestRenderedOutput(t *testing.T) {
 			"\tfoo\n\tbar\n\tbaz",
 			"    foo\n    bar\n    baz",
 		},
-		// Paragraphs
+		// Paragraph
 		{
 			"Simple paragraph",
 			[]Option{},
@@ -127,6 +127,37 @@ func TestRenderedOutput(t *testing.T) {
 			[]Option{},
 			"foo\n\nbar",
 			"foo\n\nbar",
+		},
+		// Thematic Break
+		{
+			"Thematic break default style",
+			[]Option{},
+			"---",
+			"---",
+		},
+		{
+			"Thematic break underline style",
+			[]Option{WithThematicBreakStyle(ThematicBreakStyleUnderlined)},
+			"---",
+			"___",
+		},
+		{
+			"Thematic break starred style",
+			[]Option{WithThematicBreakStyle(ThematicBreakStyleStarred)},
+			"---",
+			"***",
+		},
+		{
+			"Thematic break minimum length",
+			[]Option{WithThematicBreakLength(ThematicBreakLength(0))},
+			"---",
+			"---",
+		},
+		{
+			"Thematic break longer length",
+			[]Option{WithThematicBreakLength(ThematicBreakLength(10))},
+			"---",
+			"----------",
 		},
 	}
 
