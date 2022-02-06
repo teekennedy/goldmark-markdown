@@ -39,13 +39,13 @@ func (r *Renderer) RegisterFuncs(reg renderer.NodeRendererFuncRegisterer) {
 	reg.Register(ast.KindDocument, r.renderDocument)
 	reg.Register(ast.KindHeading, r.renderHeading)
 	reg.Register(ast.KindCodeBlock, r.renderCodeBlock)
+	reg.Register(ast.KindParagraph, r.renderParagraph)
 	/* TODO
 	reg.Register(ast.KindBlockquote, r.renderBlockquote)
 	reg.Register(ast.KindFencedCodeBlock, r.renderFencedCodeBlock)
 	reg.Register(ast.KindHTMLBlock, r.renderHTMLBlock)
 	reg.Register(ast.KindList, r.renderList)
 	reg.Register(ast.KindListItem, r.renderListItem)
-	reg.Register(ast.KindParagraph, r.renderParagraph)
 	reg.Register(ast.KindTextBlock, r.renderTextBlock)
 	reg.Register(ast.KindThematicBreak, r.renderThematicBreak)
 	*/
@@ -117,6 +117,14 @@ func (r *Renderer) renderSetextHeading(w util.BufWriter, source []byte, node *as
 		}
 	}
 	fmt.Fprintf(w, "\n%v", strings.Repeat(underlineChar, underlineWidth))
+	return ast.WalkContinue, nil
+}
+
+func (r *Renderer) renderParagraph(w util.BufWriter, source []byte, node ast.Node, entering bool) (ast.WalkStatus, error) {
+	// If there is more content after this paragraph, close block with blank line
+	if !entering && node.NextSibling() != nil {
+		_, _ = w.Write([]byte("\n\n"))
+	}
 	return ast.WalkContinue, nil
 }
 

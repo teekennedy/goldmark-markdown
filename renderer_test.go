@@ -43,80 +43,92 @@ func (t *testHelperASTTransformer) DumpLastAST(source []byte) string {
 	return result
 }
 
-var testCases = []struct {
-	name     string
-	options  []Option
-	source   string
-	expected string
-}{
-	// Headings
-	{
-		"Setext to ATX heading",
-		[]Option{WithHeadingStyle(HeadingStyleATX)},
-		"Foo\n---",
-		"## Foo",
-	},
-	{
-		"ATX to setext heading",
-		[]Option{WithHeadingStyle(HeadingStyleSetext)},
-		"## FooBar",
-		"FooBar\n---",
-	},
-	{
-		"ATX to full width setext heading",
-		[]Option{WithHeadingStyle(HeadingStyleFullWidthSetext)},
-		"Foo Bar\n---",
-		"Foo Bar\n-------",
-	},
-	{
-		"ATX heading with closing sequence",
-		[]Option{WithHeadingStyle(HeadingStyleATXSurround)},
-		"## Foo",
-		"## Foo ##",
-	},
-	{
-		"Empty ATX heading with closing sequence",
-		[]Option{WithHeadingStyle(HeadingStyleATXSurround)},
-		"##",
-		"## ##",
-	},
-	{
-		// Setext headings cannot be empty, will always be ATX
-		"Empty setext heading",
-		[]Option{WithHeadingStyle(HeadingStyleSetext)},
-		"##",
-		"##",
-	},
-	{
-		// ATX headings cannot be multiline, must be setext
-		"Multiline ATX heading",
-		[]Option{WithHeadingStyle(HeadingStyleATX)},
-		"Foo\nBar\n---",
-		"Foo\nBar\n---",
-	},
-	// Code Block
-	{
-		"Space indented code block",
-		[]Option{},
-		"    foo",
-		"    foo",
-	},
-	{
-		"Tab indented code block",
-		[]Option{WithIndentStyle(IndentStyleTabs)},
-		"    foo",
-		"\tfoo",
-	},
-	{
-		"Multiline code block",
-		[]Option{WithIndentStyle(IndentStyleSpaces)},
-		"\tfoo\n\tbar\n\tbaz",
-		"    foo\n    bar\n    baz",
-	},
-}
-
 // TestRenderedOutput tests that the renderer produces the expected output for all test cases
 func TestRenderedOutput(t *testing.T) {
+	var testCases = []struct {
+		name     string
+		options  []Option
+		source   string
+		expected string
+	}{
+		// Headings
+		{
+			"Setext to ATX heading",
+			[]Option{WithHeadingStyle(HeadingStyleATX)},
+			"Foo\n---",
+			"## Foo",
+		},
+		{
+			"ATX to setext heading",
+			[]Option{WithHeadingStyle(HeadingStyleSetext)},
+			"## FooBar",
+			"FooBar\n---",
+		},
+		{
+			"Full width setext heading",
+			[]Option{WithHeadingStyle(HeadingStyleFullWidthSetext)},
+			"Foo Bar\n---",
+			"Foo Bar\n-------",
+		},
+		{
+			"ATX heading with closing sequence",
+			[]Option{WithHeadingStyle(HeadingStyleATXSurround)},
+			"## Foo",
+			"## Foo ##",
+		},
+		{
+			"Empty ATX heading with closing sequence",
+			[]Option{WithHeadingStyle(HeadingStyleATXSurround)},
+			"##",
+			"## ##",
+		},
+		{
+			// Setext headings cannot be empty, will always be ATX
+			"Empty setext heading",
+			[]Option{WithHeadingStyle(HeadingStyleSetext)},
+			"##",
+			"##",
+		},
+		{
+			// ATX headings cannot be multiline, must be setext
+			"Multiline ATX heading",
+			[]Option{WithHeadingStyle(HeadingStyleATX)},
+			"Foo\nBar\n---",
+			"Foo\nBar\n---",
+		},
+		// Code Block
+		{
+			"Space indented code block",
+			[]Option{},
+			"    foo",
+			"    foo",
+		},
+		{
+			"Tab indented code block",
+			[]Option{WithIndentStyle(IndentStyleTabs)},
+			"    foo",
+			"\tfoo",
+		},
+		{
+			"Multiline code block",
+			[]Option{WithIndentStyle(IndentStyleSpaces)},
+			"\tfoo\n\tbar\n\tbaz",
+			"    foo\n    bar\n    baz",
+		},
+		// Paragraphs
+		{
+			"Simple paragraph",
+			[]Option{},
+			"foo",
+			"foo",
+		},
+		{
+			"Multiple paragraphs",
+			[]Option{},
+			"foo\n\nbar",
+			"foo\n\nbar",
+		},
+	}
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
