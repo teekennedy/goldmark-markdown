@@ -92,9 +92,12 @@ func (r *Renderer) renderATXHeading(w util.BufWriter, source []byte, node *ast.H
 		if node.HasChildren() {
 			fmt.Fprint(w, " ")
 		}
-	} else if r.HeadingStyle == HeadingStyleATXSurround {
-		atxHeadingChars := strings.Repeat("#", node.Level)
-		fmt.Fprintf(w, " %v", atxHeadingChars)
+	} else {
+		if r.HeadingStyle == HeadingStyleATXSurround {
+			atxHeadingChars := strings.Repeat("#", node.Level)
+			fmt.Fprintf(w, " %v", atxHeadingChars)
+		}
+		r.renderBlockSeparator(w, source, node)
 	}
 	return ast.WalkContinue, nil
 }
@@ -117,6 +120,7 @@ func (r *Renderer) renderSetextHeading(w util.BufWriter, source []byte, node *as
 		}
 	}
 	fmt.Fprintf(w, "\n%v", strings.Repeat(underlineChar, underlineWidth))
+	r.renderBlockSeparator(w, source, node)
 	return ast.WalkContinue, nil
 }
 
@@ -150,6 +154,8 @@ func (r *Renderer) renderThematicBreak(w util.BufWriter, source []byte, node ast
 		}
 		thematicBreak := []byte(strings.Repeat(breakChar, breakLen))
 		_, _ = w.Write(thematicBreak)
+	} else {
+		r.renderBlockSeparator(w, source, node)
 	}
 	return ast.WalkContinue, nil
 }

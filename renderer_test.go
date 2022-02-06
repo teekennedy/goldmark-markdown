@@ -224,6 +224,13 @@ func TestRenderedOutput(t *testing.T) {
 			"</a>",
 			"</a>",
 		},
+		// Block separator
+		{
+			"Block separator",
+			[]Option{},
+			"## ATX Heading\nSetext Heading\n---\nparagraph\n\n--- thematic break\n",
+			"## ATX Heading\n\n## Setext Heading\n\nparagraph\n\n--- thematic break",
+		},
 	}
 
 	for _, tc := range testCases {
