@@ -41,9 +41,9 @@ func (r *Renderer) RegisterFuncs(reg renderer.NodeRendererFuncRegisterer) {
 	reg.Register(ast.KindCodeBlock, r.renderCodeBlock)
 	reg.Register(ast.KindParagraph, r.renderParagraph)
 	reg.Register(ast.KindThematicBreak, r.renderThematicBreak)
+	reg.Register(ast.KindFencedCodeBlock, r.renderFencedCodeBlock)
 	/* TODO
 	reg.Register(ast.KindBlockquote, r.renderBlockquote)
-	reg.Register(ast.KindFencedCodeBlock, r.renderFencedCodeBlock)
 	reg.Register(ast.KindHTMLBlock, r.renderHTMLBlock)
 	reg.Register(ast.KindList, r.renderList)
 	reg.Register(ast.KindListItem, r.renderListItem)
@@ -122,8 +122,8 @@ func (r *Renderer) renderSetextHeading(w util.BufWriter, source []byte, node *as
 
 func (r *Renderer) renderParagraph(w util.BufWriter, source []byte, node ast.Node, entering bool) (ast.WalkStatus, error) {
 	// If there is more content after this paragraph, close block with blank line
-	if !entering && node.NextSibling() != nil {
-		_, _ = w.Write([]byte("\n\n"))
+	if !entering {
+		r.renderBlockSeparator(w, source, node)
 	}
 	return ast.WalkContinue, nil
 }
@@ -163,6 +163,34 @@ func (r *Renderer) renderCodeBlock(w util.BufWriter, source []byte, node ast.Nod
 			_, _ = w.Write(r.IndentStyle.bytes())
 			_, _ = w.Write(line.Value(source))
 		}
+	} else {
+		r.renderBlockSeparator(w, source, node)
 	}
 	return ast.WalkContinue, nil
+}
+
+func (r *Renderer) renderFencedCodeBlock(w util.BufWriter, source []byte, node ast.Node, entering bool) (ast.WalkStatus, error) {
+	n := node.(*ast.FencedCodeBlock)
+	_, _ = w.Write([]byte("```"))
+	if entering {
+		if lang := n.Language(source); lang != nil {
+			_, _ = w.Write(lang)
+		}
+		_, _ = w.Write([]byte("\n"))
+		l := n.Lines().Len()
+		for i := 0; i < l; i++ {
+			line := n.Lines().At(i)
+			_, _ = w.Write(line.Value(source))
+		}
+	} else {
+		r.renderBlockSeparator(w, source, node)
+	}
+	return ast.WalkContinue, nil
+}
+
+func (r *Renderer) renderBlockSeparator(w util.BufWriter, source []byte, node ast.Node) {
+	// If there is more content after this block, close block with blank line
+	if node.NextSibling() != nil {
+		_, _ = w.Write([]byte("\n\n"))
+	}
 }

@@ -148,7 +148,8 @@ func TestRenderedOutput(t *testing.T) {
 			"***",
 		},
 		{
-			"Thematic break minimum length",
+			// Thematic breaks are a minimum of three characters
+			"Thematic break zero value",
 			[]Option{WithThematicBreakLength(ThematicBreakLength(0))},
 			"---",
 			"---",
@@ -158,6 +159,25 @@ func TestRenderedOutput(t *testing.T) {
 			[]Option{WithThematicBreakLength(ThematicBreakLength(10))},
 			"---",
 			"----------",
+		},
+		// Fenced Code Block
+		{
+			"Fenced Code Block",
+			[]Option{},
+			"```\nfoo\nbar\nbaz\n```",
+			"```\nfoo\nbar\nbaz\n```",
+		},
+		{
+			"Fenced Code Block with language",
+			[]Option{},
+			"```ruby\ndef foo(x)\n  return 3\nend\n```",
+			"```ruby\ndef foo(x)\n  return 3\nend\n```",
+		},
+		{
+			"Fenced Code Block with special chars",
+			[]Option{},
+			"```\n!@#$%^&*\\[],./;'()\n```",
+			"```\n!@#$%^&*\\[],./;'()\n```",
 		},
 	}
 
