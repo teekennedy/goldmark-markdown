@@ -1,24 +1,23 @@
 # goldmark-markdown
 
-[![GoDoc](https://godoc.org/github.com/teekennedy/goldmark-markdown?status.svg)](https://godoc.org/github.com/teekennedy/goldmark-markdown) [![CI](https://github.com/teekennedy/goldmark-markdown/actions/workflows/ci.yml/badge.svg)](https://github.com/teekennedy/goldmark-markdown/actions/workflows/ci.yml) [![Coverage Status](https://coveralls.io/repos/github/teekennedy/goldmark-markdown/badge.svg?branch=main)](https://coveralls.io/github/teekennedy/goldmark-markdown?branch=main)
+[![GoDoc](https://godoc.org/github.com/teekennedy/goldmark-markdown?status.svg)](https://godoc.org/github.com/teekennedy/goldmark-markdown) [![latest](https://img.shields.io/github/v/tag/teekennedy/goldmark-markdown)](https://github.com/teekennedy/goldmark-markdown/tags) [![test](https://github.com/teekennedy/goldmark-markdown/actions/workflows/test.yml/badge.svg)](https://github.com/teekennedy/goldmark-markdown/actions/workflows/test.yml) [![Coverage Status](https://coveralls.io/repos/github/teekennedy/goldmark-markdown/badge.svg?branch=main)](https://coveralls.io/github/teekennedy/goldmark-markdown?branch=main)
 
-Goldmark-markdown ia a [goldmark] extension that renders and formats markdown.
-It can be used directly as an auto-formatter for markdown source, or extended
-via goldmark's powerful [AST] to programmatically transform markdown files.
+Goldmark-markdown ia a [goldmark] renderer renders to markdown. It can be used directly as an
+auto-formatter for markdown source, or extended via goldmark's powerful [AST] transformers to
+programmatically transform markdown files.
 
-This package was created for my [update-a-changelog] GitHub Action, to allow it
-to programmatically add changelog entries to CHANGELOG.md.
+This module was created for my [update-a-changelog] GitHub Action, to allow it to intelligently
+merge new changelog entries from Pull Requests into CHANGELOG.md, as well as add new versions to
+CHANGELOG.md when the corresponding tag is pushed.
 
 ## As a formatter
 
-Without any formatting options specified, goldmark-markdown will preserve as
-much of the original format as it can, effectively returning the source
-unchanged. This isn't very useful on its own, but acts as a baseline behavior
-to allow users to pick and choose which formatting options to enable.
+You can use goldmark-markdown to format existing markdown documents. It removes extraneous
+whitespace, and enforces consistent style for things like indentation, headings, and lists.
 
 ## As a markdown transformer
 
-TODO
+TODO Add an example table of contents generator as a document transformer.
 
 [goldmark]: https://github.com/yuin/goldmark
 [AST]: https://pkg.go.dev/github.com/yuin/goldmark/ast
