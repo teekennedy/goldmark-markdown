@@ -123,10 +123,10 @@ func TestRenderedOutput(t *testing.T) {
 			"foo",
 		},
 		{
-			"Multiple paragraphs",
+			"Paragraph with escaped characters",
 			[]Option{},
-			"foo\n\nbar",
-			"foo\n\nbar",
+			"\\# foo \\*bar\\* \\__baz\\_\\_",
+			"\\# foo \\*bar\\* \\__baz\\_\\_",
 		},
 		// Thematic Break
 		{
@@ -178,6 +178,51 @@ func TestRenderedOutput(t *testing.T) {
 			[]Option{},
 			"```\n!@#$%^&*\\[],./;'()\n```",
 			"```\n!@#$%^&*\\[],./;'()\n```",
+		},
+		// HTML blocks
+		// Trailing newline is necessary to avoid empty blockquote in AST
+		// https://github.com/yuin/goldmark/issues/274
+		{
+			"HTML Block Type 1",
+			[]Option{},
+			"<pre>\nfoo\n</pre>\n",
+			"<pre>\nfoo\n</pre>\n",
+		},
+		{
+			"HTML Block Type 2",
+			[]Option{},
+			"<!--\ncomment\n-->\n",
+			"<!--\ncomment\n-->\n",
+		},
+		{
+			"HTML Block Type 3",
+			[]Option{},
+			"<?\nfoo\n?>\n",
+			"<?\nfoo\n?>\n",
+		},
+		{
+			"HTML Block Type 4",
+			[]Option{},
+			"<!FOO\n!>\n",
+			"<!FOO\n!>\n",
+		},
+		{
+			"HTML Block Type 5",
+			[]Option{},
+			"<![CDATA[\nfoo\n]]>\n",
+			"<![CDATA[\nfoo\n]]>\n",
+		},
+		{
+			"HTML Block Type 6",
+			[]Option{},
+			"<hr />",
+			"<hr />",
+		},
+		{
+			"HTML Block Type 7",
+			[]Option{},
+			"</a>",
+			"</a>",
 		},
 	}
 

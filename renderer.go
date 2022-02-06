@@ -42,9 +42,9 @@ func (r *Renderer) RegisterFuncs(reg renderer.NodeRendererFuncRegisterer) {
 	reg.Register(ast.KindParagraph, r.renderParagraph)
 	reg.Register(ast.KindThematicBreak, r.renderThematicBreak)
 	reg.Register(ast.KindFencedCodeBlock, r.renderFencedCodeBlock)
+	reg.Register(ast.KindHTMLBlock, r.renderHTMLBlock)
 	/* TODO
 	reg.Register(ast.KindBlockquote, r.renderBlockquote)
-	reg.Register(ast.KindHTMLBlock, r.renderHTMLBlock)
 	reg.Register(ast.KindList, r.renderList)
 	reg.Register(ast.KindListItem, r.renderListItem)
 	reg.Register(ast.KindTextBlock, r.renderTextBlock)
@@ -183,6 +183,24 @@ func (r *Renderer) renderFencedCodeBlock(w util.BufWriter, source []byte, node a
 			_, _ = w.Write(line.Value(source))
 		}
 	} else {
+		r.renderBlockSeparator(w, source, node)
+	}
+	return ast.WalkContinue, nil
+}
+
+func (r *Renderer) renderHTMLBlock(w util.BufWriter, source []byte, node ast.Node, entering bool) (ast.WalkStatus, error) {
+	n := node.(*ast.HTMLBlock)
+	if entering {
+		l := n.Lines().Len()
+		for i := 0; i < l; i++ {
+			line := n.Lines().At(i)
+			_, _ = w.Write(line.Value(source))
+		}
+	} else {
+		if n.HasClosure() {
+			closure := n.ClosureLine
+			_, _ = w.Write(closure.Value(source))
+		}
 		r.renderBlockSeparator(w, source, node)
 	}
 	return ast.WalkContinue, nil
