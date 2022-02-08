@@ -14,6 +14,7 @@ import (
 func NewNodeRenderer(options ...Option) renderer.NodeRenderer {
 	r := &Renderer{
 		Config: NewConfig(),
+		writer: &defaultWriter{},
 	}
 	for _, opt := range options {
 		opt.SetMarkdownOption(&r.Config)
@@ -30,6 +31,7 @@ func NewRenderer(options ...Option) renderer.Renderer {
 // Renderer is an implementation of renderer.Renderer that renders nodes as Markdown
 type Renderer struct {
 	Config
+	writer Writer
 }
 
 // RegisterFuncs implements NodeRenderer.RegisterFuncs.
@@ -64,6 +66,13 @@ func (r *Renderer) RegisterFuncs(reg renderer.NodeRendererFuncRegisterer) {
 }
 
 func (r *Renderer) renderDocument(w util.BufWriter, source []byte, node ast.Node, entering bool) (ast.WalkStatus, error) {
+	if !entering {
+		// Add trailing newline to document if not already present
+		b, l := r.writer.LastWriteBytes()
+		if l == 0 || b[l-1] != byte('\n') {
+			r.writer.Write(w, []byte("\n"))
+		}
+	}
 	return ast.WalkContinue, nil
 }
 
@@ -135,9 +144,9 @@ func (r *Renderer) renderParagraph(w util.BufWriter, source []byte, node ast.Nod
 func (r *Renderer) renderText(w util.BufWriter, source []byte, node ast.Node, entering bool) (ast.WalkStatus, error) {
 	n := node.(*ast.Text)
 	if entering {
-		_, _ = w.Write(n.Text(source))
+		r.writer.Write(w, n.Text(source))
 		if n.SoftLineBreak() {
-			_, _ = w.Write([]byte("\n"))
+			r.writer.Write(w, []byte("\n"))
 		}
 	}
 	return ast.WalkContinue, nil
@@ -153,7 +162,7 @@ func (r *Renderer) renderThematicBreak(w util.BufWriter, source []byte, node ast
 			breakLen = int(r.ThematicBreakLength)
 		}
 		thematicBreak := []byte(strings.Repeat(breakChar, breakLen))
-		_, _ = w.Write(thematicBreak)
+		r.writer.Write(w, thematicBreak)
 	} else {
 		r.renderBlockSeparator(w, source, node)
 	}
@@ -166,8 +175,8 @@ func (r *Renderer) renderCodeBlock(w util.BufWriter, source []byte, node ast.Nod
 		l := n.Lines().Len()
 		for i := 0; i < l; i++ {
 			line := n.Lines().At(i)
-			_, _ = w.Write(r.IndentStyle.bytes())
-			_, _ = w.Write(line.Value(source))
+			r.writer.Write(w, r.IndentStyle.bytes())
+			r.writer.Write(w, line.Value(source))
 		}
 	} else {
 		r.renderBlockSeparator(w, source, node)
@@ -177,16 +186,16 @@ func (r *Renderer) renderCodeBlock(w util.BufWriter, source []byte, node ast.Nod
 
 func (r *Renderer) renderFencedCodeBlock(w util.BufWriter, source []byte, node ast.Node, entering bool) (ast.WalkStatus, error) {
 	n := node.(*ast.FencedCodeBlock)
-	_, _ = w.Write([]byte("```"))
+	r.writer.Write(w, []byte("```"))
 	if entering {
 		if lang := n.Language(source); lang != nil {
-			_, _ = w.Write(lang)
+			r.writer.Write(w, lang)
 		}
-		_, _ = w.Write([]byte("\n"))
+		r.writer.Write(w, []byte("\n"))
 		l := n.Lines().Len()
 		for i := 0; i < l; i++ {
 			line := n.Lines().At(i)
-			_, _ = w.Write(line.Value(source))
+			r.writer.Write(w, line.Value(source))
 		}
 	} else {
 		r.renderBlockSeparator(w, source, node)
@@ -200,12 +209,12 @@ func (r *Renderer) renderHTMLBlock(w util.BufWriter, source []byte, node ast.Nod
 		l := n.Lines().Len()
 		for i := 0; i < l; i++ {
 			line := n.Lines().At(i)
-			_, _ = w.Write(line.Value(source))
+			r.writer.Write(w, line.Value(source))
 		}
 	} else {
 		if n.HasClosure() {
 			closure := n.ClosureLine
-			_, _ = w.Write(closure.Value(source))
+			r.writer.Write(w, closure.Value(source))
 		}
 		r.renderBlockSeparator(w, source, node)
 	}
@@ -213,8 +222,32 @@ func (r *Renderer) renderHTMLBlock(w util.BufWriter, source []byte, node ast.Nod
 }
 
 func (r *Renderer) renderBlockSeparator(w util.BufWriter, source []byte, node ast.Node) {
-	// If there is more content after this block, close block with blank line
+	// If there is more content after this block, add empty line between blocks
 	if node.NextSibling() != nil {
-		_, _ = w.Write([]byte("\n\n"))
+		r.writer.Write(w, []byte("\n\n"))
 	}
+}
+
+// Writer interface is used to proxy write calls to the given util.BufWriter
+type Writer interface {
+	// Write writes the bytes from source to the given writer.
+	Write(writer util.BufWriter, source []byte)
+	// LastWriteBytes returns the bytes and length of the last write operation.
+	LastWriteBytes() ([]byte, int)
+}
+
+type defaultWriter struct {
+	// lastWriteBytes holds the contents of the last write operation.
+	lastWriteBytes []byte
+	// lastWriteLen is the length of the last write operation.
+	lastWriteLen int
+}
+
+func (d *defaultWriter) Write(writer util.BufWriter, source []byte) {
+	d.lastWriteBytes = source
+	d.lastWriteLen, _ = writer.Write(source)
+}
+
+func (d *defaultWriter) LastWriteBytes() ([]byte, int) {
+	return d.lastWriteBytes, d.lastWriteLen
 }

@@ -51,133 +51,146 @@ func TestRenderedOutput(t *testing.T) {
 		source   string
 		expected string
 	}{
+		// Document
+		{
+			"Adds trailing newline",
+			[]Option{},
+			"",
+			"\n",
+		},
+		{
+			"Existing trailing newline",
+			[]Option{},
+			"\n",
+			"\n",
+		},
 		// Headings
 		{
 			"Setext to ATX heading",
 			[]Option{WithHeadingStyle(HeadingStyleATX)},
 			"Foo\n---",
-			"## Foo",
+			"## Foo\n",
 		},
 		{
 			"ATX to setext heading",
 			[]Option{WithHeadingStyle(HeadingStyleSetext)},
 			"## FooBar",
-			"FooBar\n---",
+			"FooBar\n---\n",
 		},
 		{
 			"Full width setext heading",
 			[]Option{WithHeadingStyle(HeadingStyleFullWidthSetext)},
 			"Foo Bar\n---",
-			"Foo Bar\n-------",
+			"Foo Bar\n-------\n",
 		},
 		{
 			"ATX heading with closing sequence",
 			[]Option{WithHeadingStyle(HeadingStyleATXSurround)},
 			"## Foo",
-			"## Foo ##",
+			"## Foo ##\n",
 		},
 		{
 			"Empty ATX heading with closing sequence",
 			[]Option{WithHeadingStyle(HeadingStyleATXSurround)},
 			"##",
-			"## ##",
+			"## ##\n",
 		},
 		{
 			// Setext headings cannot be empty, will always be ATX
 			"Empty setext heading",
 			[]Option{WithHeadingStyle(HeadingStyleSetext)},
 			"##",
-			"##",
+			"##\n",
 		},
 		{
 			// ATX headings cannot be multiline, must be setext
 			"Multiline ATX heading",
 			[]Option{WithHeadingStyle(HeadingStyleATX)},
 			"Foo\nBar\n---",
-			"Foo\nBar\n---",
+			"Foo\nBar\n---\n",
 		},
 		// Code Block
 		{
 			"Space indented code block",
 			[]Option{},
 			"    foo",
-			"    foo",
+			"    foo\n",
 		},
 		{
 			"Tab indented code block",
 			[]Option{WithIndentStyle(IndentStyleTabs)},
 			"    foo",
-			"\tfoo",
+			"\tfoo\n",
 		},
 		{
 			"Multiline code block",
 			[]Option{WithIndentStyle(IndentStyleSpaces)},
 			"\tfoo\n\tbar\n\tbaz",
-			"    foo\n    bar\n    baz",
+			"    foo\n    bar\n    baz\n",
 		},
 		// Paragraph
 		{
 			"Simple paragraph",
 			[]Option{},
 			"foo",
-			"foo",
+			"foo\n",
 		},
 		{
 			"Paragraph with escaped characters",
 			[]Option{},
 			"\\# foo \\*bar\\* \\__baz\\_\\_",
-			"\\# foo \\*bar\\* \\__baz\\_\\_",
+			"\\# foo \\*bar\\* \\__baz\\_\\_\n",
 		},
 		// Thematic Break
 		{
 			"Thematic break default style",
 			[]Option{},
 			"---",
-			"---",
+			"---\n",
 		},
 		{
 			"Thematic break underline style",
 			[]Option{WithThematicBreakStyle(ThematicBreakStyleUnderlined)},
 			"---",
-			"___",
+			"___\n",
 		},
 		{
 			"Thematic break starred style",
 			[]Option{WithThematicBreakStyle(ThematicBreakStyleStarred)},
 			"---",
-			"***",
+			"***\n",
 		},
 		{
 			// Thematic breaks are a minimum of three characters
 			"Thematic break zero value",
 			[]Option{WithThematicBreakLength(ThematicBreakLength(0))},
 			"---",
-			"---",
+			"---\n",
 		},
 		{
 			"Thematic break longer length",
 			[]Option{WithThematicBreakLength(ThematicBreakLength(10))},
 			"---",
-			"----------",
+			"----------\n",
 		},
 		// Fenced Code Block
 		{
 			"Fenced Code Block",
 			[]Option{},
 			"```\nfoo\nbar\nbaz\n```",
-			"```\nfoo\nbar\nbaz\n```",
+			"```\nfoo\nbar\nbaz\n```\n",
 		},
 		{
 			"Fenced Code Block with language",
 			[]Option{},
 			"```ruby\ndef foo(x)\n  return 3\nend\n```",
-			"```ruby\ndef foo(x)\n  return 3\nend\n```",
+			"```ruby\ndef foo(x)\n  return 3\nend\n```\n",
 		},
 		{
 			"Fenced Code Block with special chars",
 			[]Option{},
 			"```\n!@#$%^&*\\[],./;'()\n```",
-			"```\n!@#$%^&*\\[],./;'()\n```",
+			"```\n!@#$%^&*\\[],./;'()\n```\n",
 		},
 		// HTML blocks
 		// Trailing newline is necessary to avoid empty blockquote in AST
@@ -216,20 +229,20 @@ func TestRenderedOutput(t *testing.T) {
 			"HTML Block Type 6",
 			[]Option{},
 			"<hr />",
-			"<hr />",
+			"<hr />\n",
 		},
 		{
 			"HTML Block Type 7",
 			[]Option{},
 			"</a>",
-			"</a>",
+			"</a>\n",
 		},
 		// Block separator
 		{
 			"Block separator",
 			[]Option{},
 			"## ATX Heading\nSetext Heading\n---\nparagraph\n\n--- thematic break\n",
-			"## ATX Heading\n\n## Setext Heading\n\nparagraph\n\n--- thematic break",
+			"## ATX Heading\n\n## Setext Heading\n\nparagraph\n\n--- thematic break\n",
 		},
 	}
 
