@@ -68,8 +68,8 @@ func (r *Renderer) RegisterFuncs(reg renderer.NodeRendererFuncRegisterer) {
 func (r *Renderer) renderDocument(w util.BufWriter, source []byte, node ast.Node, entering bool) (ast.WalkStatus, error) {
 	if !entering {
 		// Add trailing newline to document if not already present
-		b, l := r.writer.LastWriteBytes()
-		if l == 0 || b[l-1] != byte('\n') {
+		b := r.writer.LastWrittenByte()
+		if b != byte('\n') {
 			r.writer.Write(w, []byte("\n"))
 		}
 	}
@@ -232,22 +232,22 @@ func (r *Renderer) renderBlockSeparator(w util.BufWriter, source []byte, node as
 type Writer interface {
 	// Write writes the bytes from source to the given writer.
 	Write(writer util.BufWriter, source []byte)
-	// LastWriteBytes returns the bytes and length of the last write operation.
-	LastWriteBytes() ([]byte, int)
+	// LastWrittenByte returns the last byte of the last write operation.
+	LastWrittenByte() byte
 }
 
 type defaultWriter struct {
-	// lastWriteBytes holds the contents of the last write operation.
-	lastWriteBytes []byte
-	// lastWriteLen is the length of the last write operation.
-	lastWriteLen int
+	// lastWrittenByte holds the last byte of the last write operation.
+	lastWrittenByte byte
 }
 
 func (d *defaultWriter) Write(writer util.BufWriter, source []byte) {
-	d.lastWriteBytes = source
-	d.lastWriteLen, _ = writer.Write(source)
+	writeLen, _ := writer.Write(source)
+	if writeLen > 0 {
+		d.lastWrittenByte = source[writeLen-1]
+	}
 }
 
-func (d *defaultWriter) LastWriteBytes() ([]byte, int) {
-	return d.lastWriteBytes, d.lastWriteLen
+func (d *defaultWriter) LastWrittenByte() byte {
+	return d.lastWrittenByte
 }
