@@ -1,6 +1,10 @@
 package markdown
 
-import "github.com/yuin/goldmark/renderer"
+import (
+	"strings"
+
+	"github.com/yuin/goldmark/renderer"
+)
 
 // Config struct holds configurations for the markdown based renderer.
 type Config struct {
@@ -62,9 +66,14 @@ const (
 	IndentStyleTabs
 )
 
-// bytes returns the raw bytes representation of the indent style
-func (i IndentStyle) bytes() []byte {
-	return []byte([...]string{"    ", "\t"}[i])
+// String returns the string representation of the indent style
+func (i IndentStyle) String() string {
+	return [...]string{"    ", "\t"}[i]
+}
+
+// Indent returns the string representation of the given indentation level
+func (i IndentStyle) Indent(level int) string {
+	return strings.Repeat(i.String(), level)
 }
 
 type withIndentStyle struct {

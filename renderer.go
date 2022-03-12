@@ -14,7 +14,8 @@ import (
 func NewNodeRenderer(options ...Option) renderer.NodeRenderer {
 	r := &Renderer{
 		Config: NewConfig(),
-		writer: &defaultWriter{},
+		rc:     renderContext{},
+		writer: renderWriter{},
 	}
 	for _, opt := range options {
 		opt.SetMarkdownOption(&r.Config)
@@ -31,7 +32,8 @@ func NewRenderer(options ...Option) renderer.Renderer {
 // Renderer is an implementation of renderer.Renderer that renders nodes as Markdown
 type Renderer struct {
 	Config
-	writer Writer
+	rc     renderContext
+	writer renderWriter
 }
 
 // RegisterFuncs implements NodeRenderer.RegisterFuncs.
@@ -45,32 +47,44 @@ func (r *Renderer) RegisterFuncs(reg renderer.NodeRendererFuncRegisterer) {
 	reg.Register(ast.KindThematicBreak, r.renderThematicBreak)
 	reg.Register(ast.KindFencedCodeBlock, r.renderFencedCodeBlock)
 	reg.Register(ast.KindHTMLBlock, r.renderHTMLBlock)
-	/* TODO
-	reg.Register(ast.KindBlockquote, r.renderBlockquote)
-	reg.Register(ast.KindList, r.renderList)
+	reg.Register(ast.KindList, r.withListIndent(r.renderList))
 	reg.Register(ast.KindListItem, r.renderListItem)
 	reg.Register(ast.KindTextBlock, r.renderTextBlock)
+	/* TODO
+	reg.Register(ast.KindBlockquote, r.renderBlockquote)
 	*/
 
 	// inlines
 	reg.Register(ast.KindText, r.renderText)
+	reg.Register(ast.KindLink, r.renderLink)
 	/* TODO
 	reg.Register(ast.KindString, r.renderString)
 	reg.Register(ast.KindAutoLink, r.renderAutoLink)
 	reg.Register(ast.KindCodeSpan, r.renderCodeSpan)
 	reg.Register(ast.KindEmphasis, r.renderEmphasis)
 	reg.Register(ast.KindImage, r.renderImage)
-	reg.Register(ast.KindLink, r.renderLink)
 	reg.Register(ast.KindRawHTML, r.renderRawHTML)
 	*/
+}
+
+func (r *Renderer) withListIndent(inner renderer.NodeRendererFunc) renderer.NodeRendererFunc {
+	return func(w util.BufWriter, source []byte, node ast.Node, entering bool) (ast.WalkStatus, error) {
+		if entering {
+			r.rc.listIndent += 1
+		}
+		status, err := inner(w, source, node, entering)
+		if !entering {
+			r.rc.listIndent -= 1
+		}
+		return status, err
+	}
 }
 
 func (r *Renderer) renderDocument(w util.BufWriter, source []byte, node ast.Node, entering bool) (ast.WalkStatus, error) {
 	if !entering {
 		// Add trailing newline to document if not already present
-		b := r.writer.LastWrittenByte()
-		if b != byte('\n') {
-			r.writer.Write(w, []byte("\n"))
+		if r.writer.lastWrittenByte != byte('\n') {
+			r.writer.WriteString(w, "\n")
 		}
 	}
 	return ast.WalkContinue, nil
@@ -141,17 +155,6 @@ func (r *Renderer) renderParagraph(w util.BufWriter, source []byte, node ast.Nod
 	return ast.WalkContinue, nil
 }
 
-func (r *Renderer) renderText(w util.BufWriter, source []byte, node ast.Node, entering bool) (ast.WalkStatus, error) {
-	n := node.(*ast.Text)
-	if entering {
-		r.writer.Write(w, n.Text(source))
-		if n.SoftLineBreak() {
-			r.writer.Write(w, []byte("\n"))
-		}
-	}
-	return ast.WalkContinue, nil
-}
-
 func (r *Renderer) renderThematicBreak(w util.BufWriter, source []byte, node ast.Node, entering bool) (ast.WalkStatus, error) {
 	if entering {
 		breakChar := [...]string{"-", "*", "_"}[r.ThematicBreakStyle]
@@ -161,8 +164,7 @@ func (r *Renderer) renderThematicBreak(w util.BufWriter, source []byte, node ast
 		} else {
 			breakLen = int(r.ThematicBreakLength)
 		}
-		thematicBreak := []byte(strings.Repeat(breakChar, breakLen))
-		r.writer.Write(w, thematicBreak)
+		r.writer.WriteString(w, strings.Repeat(breakChar, breakLen))
 	} else {
 		r.renderBlockSeparator(w, source, node)
 	}
@@ -175,7 +177,7 @@ func (r *Renderer) renderCodeBlock(w util.BufWriter, source []byte, node ast.Nod
 		l := n.Lines().Len()
 		for i := 0; i < l; i++ {
 			line := n.Lines().At(i)
-			r.writer.Write(w, r.IndentStyle.bytes())
+			r.writer.WriteString(w, r.IndentStyle.String())
 			r.writer.Write(w, line.Value(source))
 		}
 	} else {
@@ -186,12 +188,12 @@ func (r *Renderer) renderCodeBlock(w util.BufWriter, source []byte, node ast.Nod
 
 func (r *Renderer) renderFencedCodeBlock(w util.BufWriter, source []byte, node ast.Node, entering bool) (ast.WalkStatus, error) {
 	n := node.(*ast.FencedCodeBlock)
-	r.writer.Write(w, []byte("```"))
+	r.writer.WriteString(w, "```")
 	if entering {
 		if lang := n.Language(source); lang != nil {
 			r.writer.Write(w, lang)
 		}
-		r.writer.Write(w, []byte("\n"))
+		r.writer.WriteString(w, "\n")
 		l := n.Lines().Len()
 		for i := 0; i < l; i++ {
 			line := n.Lines().At(i)
@@ -221,33 +223,118 @@ func (r *Renderer) renderHTMLBlock(w util.BufWriter, source []byte, node ast.Nod
 	return ast.WalkContinue, nil
 }
 
+func (r *Renderer) renderList(w util.BufWriter, source []byte, node ast.Node, entering bool) (ast.WalkStatus, error) {
+	if entering {
+		n := node.(*ast.List)
+		r.rc.listMarker = n.Marker
+	} else if r.rc.listIndent == 1 {
+		r.renderBlockSeparator(w, source, node)
+	}
+	return ast.WalkContinue, nil
+}
+
+func (r *Renderer) renderListItem(w util.BufWriter, source []byte, node ast.Node, entering bool) (ast.WalkStatus, error) {
+	if entering {
+		n := node.(*ast.ListItem)
+		r.writer.WriteString(w, r.IndentStyle.Indent(r.rc.listIndent-1))
+		r.writer.Write(w, []byte{r.rc.listMarker})
+		if n.HasChildren() {
+			r.writer.WriteString(w, " ")
+		}
+	} else {
+		// If there are any more sibling nodes and content was written, add a newline
+		if node.NextSibling() != nil && node.HasChildren() {
+			r.writer.WriteString(w, "\n")
+		}
+	}
+	return ast.WalkContinue, nil
+}
+
+func (r *Renderer) renderText(w util.BufWriter, source []byte, node ast.Node, entering bool) (ast.WalkStatus, error) {
+	n := node.(*ast.Text)
+	if entering {
+		r.writer.Write(w, n.Text(source))
+		if n.SoftLineBreak() {
+			r.writer.WriteString(w, "\n")
+		}
+	}
+	return ast.WalkContinue, nil
+}
+
+func (r *Renderer) renderLink(w util.BufWriter, source []byte, node ast.Node, entering bool) (ast.WalkStatus, error) {
+	n := node.(*ast.Link)
+	if entering {
+		r.writer.Write(w, []byte("["))
+	} else {
+		link := fmt.Sprintf("](%s", n.Destination)
+		r.writer.WriteString(w, link)
+		if len(n.Title) > 0 {
+			title := fmt.Sprintf(" \"%s\"", n.Title)
+			r.writer.WriteString(w, title)
+		}
+		r.writer.WriteString(w, ")")
+	}
+	return ast.WalkContinue, nil
+}
+
+func (r *Renderer) renderTextBlock(w util.BufWriter, source []byte, node ast.Node, entering bool) (ast.WalkStatus, error) {
+	if !entering {
+		// If there are any more sibling nodes and content was written, add a newline
+		if node.NextSibling() != nil && node.HasChildren() {
+			r.writer.WriteString(w, "\n")
+		}
+	}
+	return ast.WalkContinue, nil
+}
+
 func (r *Renderer) renderBlockSeparator(w util.BufWriter, source []byte, node ast.Node) {
 	// If there is more content after this block, add empty line between blocks
 	if node.NextSibling() != nil {
-		r.writer.Write(w, []byte("\n\n"))
+		r.writer.WriteString(w, "\n\n")
 	}
 }
 
-// Writer interface is used to proxy write calls to the given util.BufWriter
-type Writer interface {
-	// Write writes the bytes from source to the given writer.
-	Write(writer util.BufWriter, source []byte)
-	// LastWrittenByte returns the last byte of the last write operation.
-	LastWrittenByte() byte
+type renderContext struct {
+	// listIndent is the current indentation level for List
+	listIndent int
+	// listMarker is the marker character used for the current list
+	listMarker byte
 }
 
-type defaultWriter struct {
+// renderWriter wraps util.BufWriter methods to implement error handling.
+type renderWriter struct {
+	// err holds the last write error. If non-nil, all write operations become no-ops
+	err error
 	// lastWrittenByte holds the last byte of the last write operation.
 	lastWrittenByte byte
 }
 
-func (d *defaultWriter) Write(writer util.BufWriter, source []byte) {
-	writeLen, _ := writer.Write(source)
+// Write writes the given bytes content to the given writer.
+func (r *renderWriter) Write(writer util.BufWriter, content []byte) {
+	if r.err != nil {
+		return
+	}
+	var writeLen int
+	writeLen, r.err = writer.Write(content)
 	if writeLen > 0 {
-		d.lastWrittenByte = source[writeLen-1]
+		r.lastWrittenByte = content[writeLen-1]
 	}
 }
 
-func (d *defaultWriter) LastWrittenByte() byte {
-	return d.lastWrittenByte
+// WriteString writes the given string content to the given writer.
+func (r *renderWriter) WriteString(writer util.BufWriter, content string) {
+	if r.err != nil {
+		return
+	}
+	var writeLen int
+	writeLen, r.err = writer.WriteString(content)
+	if writeLen > 0 {
+		r.lastWrittenByte = content[writeLen-1]
+	}
+}
+
+// Reset resets the error and last written byte state of the renderWriter
+func (r *renderWriter) Reset() {
+	r.err = nil
+	r.lastWrittenByte = byte(0)
 }
