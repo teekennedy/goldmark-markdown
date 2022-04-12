@@ -15,6 +15,37 @@ CHANGELOG.md when the corresponding tag is pushed.
 You can use goldmark-markdown to format existing markdown documents. It removes extraneous
 whitespace, and enforces consistent style for things like indentation, headings, and lists.
 
+```go
+// Create goldmark converter with markdown renderer object
+// Can pass functional Options as arguments. This example converts headings to ATX style.
+renderer := markdown.NewRenderer(markdown.WithHeadingStyle(markdown.HeadingStyleATX))
+md := goldmark.New(goldmark.WithRenderer(renderer))
+
+// "Convert" markdown to formatted markdown
+source := `
+My Document Title
+=================
+`
+buf := bytes.Buffer{}
+err := md.Convert([]byte(source), &buf)
+if err != nil {
+  log.Fatal(err)
+}
+log.Print(buf.String()) // # My Document Title
+```
+
+### Options
+
+You can control the style of various markdown elements via functional options that are passed to
+the renderer.
+
+| Functional Option | Type | Description |
+| ----------------- | ---- | ----------- |
+| WithIndentStyle | markdown.IndentStyle | Indent nested blocks with spaces or tabs. |
+| WithHeadingStyle | markdown.HeadingStyle | Render markdown headings as ATX (`#`-based), Setext (underlined with `===` or `---`), or variants thereof. |
+| WithThematicBreakStyle | markdown.ThematicBreakStyle | Render thematic breaks with `-`, `*`, or `_`. |
+| WithThematicBreakLength | markdown.ThematicBreakLength | Number of characters to use in a thematic break (minimum 3). |
+
 ## As a markdown transformer
 
 Goldmark supports writing transformers that can inspect and modify the parsed markdown [AST] before
@@ -107,19 +138,13 @@ func (t *RegexpLinkTransformer) LinkifyText(node *ast.Text, source []byte) {
 	link.Destination = t.LinkPattern.ReplaceAll(lSegment.Value(source), t.ReplUrl)
 	parent.InsertBefore(parent, node, link)
 
-	// Insert node for any text after the link, and apply line break flags from original Text
-	aText := ast.NewTextSegment(tSegment.WithStart(lSegment.Stop))
-	aText.SetSoftLineBreak(node.SoftLineBreak())
-	aText.SetHardLineBreak(node.HardLineBreak())
-	parent.InsertBefore(parent, node, aText)
+	// Update original node to represent the text after the link (may be empty)
+	node.Segment = tSegment.WithStart(lSegment.Stop)
 
-	// Linkify after text if not empty
-	if aText.Segment.Len() > 0 {
-		t.LinkifyText(aText, source)
+	// Linkify remaining text if not empty
+	if node.Segment.Len() > 0 {
+		t.LinkifyText(node, source)
 	}
-
-	// Remove original node
-	parent.RemoveChild(parent, node)
 }
 ```
 
