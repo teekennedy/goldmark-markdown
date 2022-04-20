@@ -40,16 +40,18 @@ type Renderer struct {
 func (r *Renderer) RegisterFuncs(reg renderer.NodeRendererFuncRegisterer) {
 	// blocks
 
-	reg.Register(ast.KindDocument, r.renderDocument)
-	reg.Register(ast.KindHeading, r.renderHeading)
-	reg.Register(ast.KindCodeBlock, r.renderCodeBlock)
-	reg.Register(ast.KindParagraph, r.renderParagraph)
-	reg.Register(ast.KindThematicBreak, r.renderThematicBreak)
-	reg.Register(ast.KindFencedCodeBlock, r.renderFencedCodeBlock)
-	reg.Register(ast.KindHTMLBlock, r.renderHTMLBlock)
-	reg.Register(ast.KindList, r.withListIndent(r.renderList))
-	reg.Register(ast.KindListItem, r.renderListItem)
-	reg.Register(ast.KindTextBlock, r.renderTextBlock)
+	reg.Register(ast.KindDocument, r.chainRenderers(r.renderBlockSeparator, r.renderNothing))
+	reg.Register(ast.KindHeading, r.chainRenderers(r.renderBlockSeparator, r.renderHeading))
+	reg.Register(ast.KindCodeBlock, r.chainRenderers(r.renderBlockSeparator, r.renderCodeBlock))
+	reg.Register(ast.KindParagraph, r.chainRenderers(r.renderBlockSeparator, r.renderNothing))
+	// text blocks are essentially paragraphs that aren't wrapped with a <p> tag,
+	// a distinction which doesn't apply to this markdown renderer.
+	reg.Register(ast.KindTextBlock, r.chainRenderers(r.renderBlockSeparator, r.renderNothing))
+	reg.Register(ast.KindThematicBreak, r.chainRenderers(r.renderBlockSeparator, r.renderThematicBreak))
+	reg.Register(ast.KindFencedCodeBlock, r.chainRenderers(r.renderBlockSeparator, r.renderFencedCodeBlock))
+	reg.Register(ast.KindHTMLBlock, r.chainRenderers(r.renderBlockSeparator, r.renderHTMLBlock))
+	reg.Register(ast.KindList, r.chainRenderers(r.renderBlockSeparator, r.renderList))
+	reg.Register(ast.KindListItem, r.chainRenderers(r.renderBlockSeparator, r.renderListItem))
 	/* TODO
 	reg.Register(ast.KindBlockquote, r.renderBlockquote)
 	*/
@@ -67,26 +69,40 @@ func (r *Renderer) RegisterFuncs(reg renderer.NodeRendererFuncRegisterer) {
 	*/
 }
 
-func (r *Renderer) withListIndent(inner renderer.NodeRendererFunc) renderer.NodeRendererFunc {
-	return func(w util.BufWriter, source []byte, node ast.Node, entering bool) (ast.WalkStatus, error) {
-		if entering {
-			r.rc.listIndent += 1
+func (r *Renderer) renderBlockSeparator(w util.BufWriter, source []byte, node ast.Node, entering bool) (ast.WalkStatus, error) {
+	if entering {
+		// Add blank previous line if applicable
+		if node.HasBlankPreviousLines() && node.PreviousSibling() != nil {
+			r.writer.WriteString(w, "\n")
 		}
-		status, err := inner(w, source, node, entering)
-		if !entering {
-			r.rc.listIndent -= 1
-		}
-		return status, err
-	}
-}
-
-func (r *Renderer) renderDocument(w util.BufWriter, source []byte, node ast.Node, entering bool) (ast.WalkStatus, error) {
-	if !entering {
-		// Add trailing newline to document if not already present
+	} else {
+		// Add trailing newline to block if not already present
 		if r.writer.lastWrittenByte != byte('\n') {
 			r.writer.WriteString(w, "\n")
 		}
 	}
+	return ast.WalkContinue, nil
+}
+
+func (r *Renderer) chainRenderers(renderers ...renderer.NodeRendererFunc) renderer.NodeRendererFunc {
+	return func(w util.BufWriter, source []byte, node ast.Node, entering bool) (ast.WalkStatus, error) {
+		var walkStatus ast.WalkStatus
+		var err error
+		for i := range renderers {
+			// go through renderers in reverse when exiting
+			if !entering {
+				i = len(renderers) - 1 - i
+			}
+			walkStatus, err = renderers[i](w, source, node, entering)
+			if err != nil {
+				break
+			}
+		}
+		return walkStatus, err
+	}
+}
+
+func (r *Renderer) renderNothing(w util.BufWriter, source []byte, node ast.Node, entering bool) (ast.WalkStatus, error) {
 	return ast.WalkContinue, nil
 }
 
@@ -120,7 +136,6 @@ func (r *Renderer) renderATXHeading(w util.BufWriter, source []byte, node *ast.H
 			atxHeadingChars := strings.Repeat("#", node.Level)
 			fmt.Fprintf(w, " %v", atxHeadingChars)
 		}
-		r.renderBlockSeparator(w, source, node)
 	}
 	return ast.WalkContinue, nil
 }
@@ -143,15 +158,6 @@ func (r *Renderer) renderSetextHeading(w util.BufWriter, source []byte, node *as
 		}
 	}
 	fmt.Fprintf(w, "\n%v", strings.Repeat(underlineChar, underlineWidth))
-	r.renderBlockSeparator(w, source, node)
-	return ast.WalkContinue, nil
-}
-
-func (r *Renderer) renderParagraph(w util.BufWriter, source []byte, node ast.Node, entering bool) (ast.WalkStatus, error) {
-	// If there is more content after this paragraph, close block with blank line
-	if !entering {
-		r.renderBlockSeparator(w, source, node)
-	}
 	return ast.WalkContinue, nil
 }
 
@@ -165,8 +171,6 @@ func (r *Renderer) renderThematicBreak(w util.BufWriter, source []byte, node ast
 			breakLen = int(r.ThematicBreakLength)
 		}
 		r.writer.WriteString(w, strings.Repeat(breakChar, breakLen))
-	} else {
-		r.renderBlockSeparator(w, source, node)
 	}
 	return ast.WalkContinue, nil
 }
@@ -180,8 +184,6 @@ func (r *Renderer) renderCodeBlock(w util.BufWriter, source []byte, node ast.Nod
 			r.writer.WriteString(w, r.IndentStyle.String())
 			r.writer.Write(w, line.Value(source))
 		}
-	} else {
-		r.renderBlockSeparator(w, source, node)
 	}
 	return ast.WalkContinue, nil
 }
@@ -199,8 +201,6 @@ func (r *Renderer) renderFencedCodeBlock(w util.BufWriter, source []byte, node a
 			line := n.Lines().At(i)
 			r.writer.Write(w, line.Value(source))
 		}
-	} else {
-		r.renderBlockSeparator(w, source, node)
 	}
 	return ast.WalkContinue, nil
 }
@@ -218,7 +218,6 @@ func (r *Renderer) renderHTMLBlock(w util.BufWriter, source []byte, node ast.Nod
 			closure := n.ClosureLine
 			r.writer.Write(w, closure.Value(source))
 		}
-		r.renderBlockSeparator(w, source, node)
 	}
 	return ast.WalkContinue, nil
 }
@@ -227,8 +226,9 @@ func (r *Renderer) renderList(w util.BufWriter, source []byte, node ast.Node, en
 	if entering {
 		n := node.(*ast.List)
 		r.rc.listMarker = n.Marker
-	} else if r.rc.listIndent == 1 {
-		r.renderBlockSeparator(w, source, node)
+		r.rc.listIndent += 1
+	} else {
+		r.rc.listIndent -= 1
 	}
 	return ast.WalkContinue, nil
 }
@@ -240,11 +240,6 @@ func (r *Renderer) renderListItem(w util.BufWriter, source []byte, node ast.Node
 		r.writer.Write(w, []byte{r.rc.listMarker})
 		if n.HasChildren() {
 			r.writer.WriteString(w, " ")
-		}
-	} else {
-		// If there are any more sibling nodes and content was written, add a newline
-		if node.NextSibling() != nil && node.HasChildren() {
-			r.writer.WriteString(w, "\n")
 		}
 	}
 	return ast.WalkContinue, nil
@@ -275,23 +270,6 @@ func (r *Renderer) renderLink(w util.BufWriter, source []byte, node ast.Node, en
 		r.writer.WriteString(w, ")")
 	}
 	return ast.WalkContinue, nil
-}
-
-func (r *Renderer) renderTextBlock(w util.BufWriter, source []byte, node ast.Node, entering bool) (ast.WalkStatus, error) {
-	if !entering {
-		// If there are any more sibling nodes and content was written, add a newline
-		if node.NextSibling() != nil && node.HasChildren() {
-			r.writer.WriteString(w, "\n")
-		}
-	}
-	return ast.WalkContinue, nil
-}
-
-func (r *Renderer) renderBlockSeparator(w util.BufWriter, source []byte, node ast.Node) {
-	// If there is more content after this block, add empty line between blocks
-	if node.NextSibling() != nil {
-		r.writer.WriteString(w, "\n\n")
-	}
 }
 
 type renderContext struct {

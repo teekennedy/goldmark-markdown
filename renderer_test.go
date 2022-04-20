@@ -247,12 +247,68 @@ func TestRenderedOutput(t *testing.T) {
 			"- A1\n- B1\n\t- C2\n\t\t- D3\n- E1\n",
 		},
 		// TODO ordered list
-		// Block separator
+		// Block separators
 		{
-			"Block separator",
+			"ATX heading block separator",
 			[]Option{},
-			"## ATX Heading\nSetext Heading\n---\nparagraph\n\n--- thematic break\n",
-			"## ATX Heading\n\n## Setext Heading\n\nparagraph\n\n--- thematic break\n",
+			"# Foo\n# Bar\n\n# Baz",
+			"# Foo\n# Bar\n\n# Baz\n",
+		},
+		{
+			"Setext heading block separator",
+			[]Option{WithHeadingStyle(HeadingStyleSetext)},
+			"Foo\n---\nBar\n---\n\nBaz\n---",
+			"Foo\n---\nBar\n---\n\nBaz\n---\n",
+		},
+		{
+			"Code block separator",
+			[]Option{WithIndentStyle(IndentStyleTabs)},
+			"\tcode 1\n---\n\tcode 2\n---\n\n\tcode 3",
+			"\tcode 1\n---\n\tcode 2\n---\n\n\tcode 3\n",
+		},
+		{
+			"Fenced code block separator",
+			[]Option{},
+			"```\ncode 1\n```\n```\ncode 2\n```\n\n```\ncode 3\n```",
+			"```\ncode 1\n```\n```\ncode 2\n```\n\n```\ncode 3\n```\n",
+		},
+		{
+			"HTML block separator",
+			[]Option{},
+			"<?foo?>\n<?bar?>\n\n<?baz?>",
+			"<?foo?>\n<?bar?>\n\n<?baz?>\n",
+		},
+		{
+			"List block separator",
+			[]Option{},
+			"- foo\n+ bar\n\n* baz",
+			"- foo\n+ bar\n\n* baz\n",
+		},
+		{
+			"List item block separator",
+			[]Option{},
+			"- foo\n- bar\n\n- baz",
+			"- foo\n- bar\n\n- baz\n",
+		},
+		{
+			"Text block separator",
+			[]Option{},
+			"- foo\n- bar\n\n- baz",
+			"- foo\n- bar\n\n- baz\n",
+		},
+
+		// Tight and "loose" lists
+		{
+			"Tight list",
+			[]Option{},
+			"Paragraph\n- A1\n- B1",
+			"Paragraph\n- A1\n- B1\n",
+		},
+		{
+			"Loose list",
+			[]Option{},
+			"Paragraph\n\n- A1\n- B1",
+			"Paragraph\n\n- A1\n- B1\n",
 		},
 		// Links
 		{
