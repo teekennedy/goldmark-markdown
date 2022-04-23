@@ -195,36 +195,34 @@ func TestRenderedOutput(t *testing.T) {
 			"```\n!@#$%^&*\\[],./;'()\n```\n",
 		},
 		// HTML blocks
-		// Trailing newline is necessary to avoid empty blockquote in AST
-		// https://github.com/yuin/goldmark/issues/274
 		{
 			"HTML Block Type 1",
 			[]Option{},
-			"<pre>\nfoo\n</pre>\n",
+			"<pre>\nfoo\n</pre>",
 			"<pre>\nfoo\n</pre>\n",
 		},
 		{
 			"HTML Block Type 2",
 			[]Option{},
-			"<!--\ncomment\n-->\n",
+			"<!--\ncomment\n-->",
 			"<!--\ncomment\n-->\n",
 		},
 		{
 			"HTML Block Type 3",
 			[]Option{},
-			"<?\nfoo\n?>\n",
+			"<?\nfoo\n?>",
 			"<?\nfoo\n?>\n",
 		},
 		{
 			"HTML Block Type 4",
 			[]Option{},
-			"<!FOO\n!>\n",
+			"<!FOO\n!>",
 			"<!FOO\n!>\n",
 		},
 		{
 			"HTML Block Type 5",
 			[]Option{},
-			"<![CDATA[\nfoo\n]]>\n",
+			"<![CDATA[\nfoo\n]]>",
 			"<![CDATA[\nfoo\n]]>\n",
 		},
 		{
