@@ -193,8 +193,8 @@ func (r *Renderer) renderFencedCodeBlock(w util.BufWriter, source []byte, node a
 	n := node.(*ast.FencedCodeBlock)
 	r.writer.WriteString(w, "```")
 	if entering {
-		if lang := n.Language(source); lang != nil {
-			r.writer.Write(w, lang)
+		if info := n.Info; info != nil {
+			r.writer.Write(w, info.Text(source))
 		}
 		r.writer.WriteString(w, "\n")
 		l := n.Lines().Len()

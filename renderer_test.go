@@ -306,10 +306,10 @@ func TestRenderedOutput(t *testing.T) {
 			"```\nfoo\nbar\nbaz\n```\n",
 		},
 		{
-			"Fenced Code Block with language",
+			"Fenced Code Block with info",
 			[]Option{},
-			"```ruby\ndef foo(x)\n  return 3\nend\n```",
-			"```ruby\ndef foo(x)\n  return 3\nend\n```\n",
+			"```ruby startline=3\ndef foo(x)\n  return 3\nend\n```",
+			"```ruby startline=3\ndef foo(x)\n  return 3\nend\n```\n",
 		},
 		{
 			"Fenced Code Block with special chars",
