@@ -2,6 +2,7 @@
 package markdown
 
 import (
+	"bytes"
 	"fmt"
 	"strings"
 
@@ -59,10 +60,10 @@ func (r *Renderer) RegisterFuncs(reg renderer.NodeRendererFuncRegisterer) {
 	// inlines
 	reg.Register(ast.KindText, r.renderText)
 	reg.Register(ast.KindLink, r.renderLink)
+	reg.Register(ast.KindCodeSpan, r.renderCodeSpan)
 	/* TODO
 	reg.Register(ast.KindString, r.renderString)
 	reg.Register(ast.KindAutoLink, r.renderAutoLink)
-	reg.Register(ast.KindCodeSpan, r.renderCodeSpan)
 	reg.Register(ast.KindEmphasis, r.renderEmphasis)
 	reg.Register(ast.KindImage, r.renderImage)
 	reg.Register(ast.KindRawHTML, r.renderRawHTML)
@@ -248,7 +249,13 @@ func (r *Renderer) renderListItem(w util.BufWriter, source []byte, node ast.Node
 func (r *Renderer) renderText(w util.BufWriter, source []byte, node ast.Node, entering bool) (ast.WalkStatus, error) {
 	n := node.(*ast.Text)
 	if entering {
-		r.writer.Write(w, n.Text(source))
+		text := n.Text(source)
+
+		if r.rc.inCodeSpan {
+			text = bytes.ReplaceAll(text, []byte("\n"), []byte(" "))
+		}
+
+		r.writer.Write(w, text)
 		if n.SoftLineBreak() {
 			r.writer.WriteString(w, "\n")
 		}
@@ -272,11 +279,29 @@ func (r *Renderer) renderLink(w util.BufWriter, source []byte, node ast.Node, en
 	return ast.WalkContinue, nil
 }
 
+func (r *Renderer) renderCodeSpan(w util.BufWriter, source []byte, node ast.Node, entering bool) (ast.WalkStatus, error) {
+	if bytes.Count(node.Text(source), []byte("`"))%2 != 0 {
+		r.writer.WriteString(w, "``")
+	} else {
+		r.writer.WriteString(w, "`")
+	}
+
+	if entering {
+		r.rc.inCodeSpan = true
+	} else {
+		r.rc.inCodeSpan = false
+	}
+
+	return ast.WalkContinue, nil
+}
+
 type renderContext struct {
 	// listIndent is the current indentation level for List
 	listIndent int
 	// listMarker is the marker character used for the current list
 	listMarker byte
+	// inCodeSpan is true if inside a code span
+	inCodeSpan bool
 }
 
 // renderWriter wraps util.BufWriter methods to implement error handling.
