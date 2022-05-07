@@ -130,6 +130,129 @@ func TestRenderedOutput(t *testing.T) {
 			"\tfoo\n\tbar\n\tbaz",
 			"    foo\n    bar\n    baz\n",
 		},
+		// Code Span
+		{
+			"Simple code span",
+			[]Option{},
+			"`foo`",
+			"`foo`\n",
+		},
+		{
+			"Two-backtick code span",
+			[]Option{},
+			"``foo ` bar``",
+			"``foo ` bar``\n",
+		},
+		{
+			"Code span stripping leading and trailing spaces",
+			[]Option{},
+			"` `` `",
+			"````\n",
+		},
+		{
+			"Code span stripping one space",
+			[]Option{},
+			"`  ``  `",
+			"` `` `\n",
+		},
+		{
+			"Unstrippable left space only",
+			[]Option{},
+			"` a`",
+			"` a`\n",
+		},
+		{
+			"Unstrippable only spaces",
+			[]Option{},
+			"` `\n`  `",
+			"` `\n`  `\n",
+		},
+		{
+			"Multiple line-endings treated as spaces",
+			[]Option{},
+			"``\nfoo\nbar  \nbaz\n``",
+			"`foo bar   baz`\n",
+		},
+		{
+			"Line-ending treated as space",
+			[]Option{},
+			"``\nfoo \n``",
+			"`foo `\n",
+		},
+		{
+			"Interior spaces are not collapsed",
+			[]Option{},
+			"`foo   bar \nbaz`",
+			"`foo   bar  baz`\n",
+		},
+		{
+			"Backlashes are treated literally",
+			[]Option{},
+			"`foo\\`bar`",
+			"`foo\\`bar`\n",
+		},
+		{
+			"Two backticks act as delimiters",
+			[]Option{},
+			"``foo`bar``",
+			"``foo`bar``\n",
+		},
+		{
+			"Two backtics inside single ones with spaces trimmed",
+			[]Option{},
+			"` foo `` bar `",
+			"`foo `` bar`\n",
+		},
+		{
+			"Codespan backticks have precedence over emphasis",
+			[]Option{},
+			"*foo`*`",
+			"*foo`*`\n",
+		},
+		{
+			"Codespan backticks have equal precedence with HTML",
+			[]Option{},
+			"`<a href=\"`\">`",
+			"`<a href=\"`\">`\n",
+		},
+		// TODO: support KindRawHTML
+		// {
+		// 	"HTML tag with backtick",
+		// 	[]Option{},
+		// 	"<a href=\"`\">`",
+		// 	"<a href=\"`\">`",
+		// },
+		{
+			"Autolink split by a backtick",
+			[]Option{},
+			"`<http://foo.bar.`baz>`",
+			"`<http://foo.bar.`baz>`\n",
+		},
+		// TODO: support KindAutoLink
+		// {
+		// 	"Autolink with a backtick",
+		// 	[]Option{},
+		// 	"<http://foo.bar.`baz>`",
+		// 	"<http://foo.bar.`baz>`\n",
+		// },
+		{
+			"Unbalanced 3-2 backticks remain intact",
+			[]Option{},
+			"```foo``",
+			"```foo``\n",
+		},
+		{
+			"Unbalanced 1-0 backticks remain intact",
+			[]Option{},
+			"`foo",
+			"`foo\n",
+		},
+		{
+			"Unbalanced double backticks",
+			[]Option{},
+			"`foo``bar``",
+			"`foo`bar`\n",
+		},
 		// Paragraph
 		{
 			"Simple paragraph",
