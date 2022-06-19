@@ -1,13 +1,10 @@
 package markdown
 
 import (
-	"bytes"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
-	"github.com/yuin/goldmark/ast"
 	"github.com/yuin/goldmark/renderer"
-	"github.com/yuin/goldmark/util"
 )
 
 // TestRendererOptions tests the methods for setting configuration options on the renderer
@@ -15,7 +12,7 @@ func TestRendererOptions(t *testing.T) {
 	var cases = []struct {
 		name     string
 		options  []Option
-		expected Config
+		expected *Config
 	}{
 		{
 			"Defaults",
@@ -48,23 +45,19 @@ func TestRendererOptions(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			assert := assert.New(t)
 
-			// Set options by passing them directly to NewNodeRenderer
-			nodeRenderer := NewNodeRenderer(tc.options...).(*Renderer)
-			assert.Equal(tc.expected, nodeRenderer.Config)
+			// Set options by passing them directly to NewRenderer
+			r := NewRenderer(tc.options...)
+			assert.Equal(tc.expected, r.config)
 
-			// Set options by name using goldmark's renderer.AddOptions
-			nodeRenderer = NewNodeRenderer().(*Renderer)
-			r := renderer.NewRenderer(renderer.WithNodeRenderers(util.Prioritized(nodeRenderer, 1000)))
+			// Set options by name using AddOptions
+			r = NewRenderer()
 			// Convert markdown Option interface to renderer.Option interface
-			rendererOptions := make([]renderer.Option, len(tc.options))
+			options := make([]renderer.Option, len(tc.options))
 			for i, o := range tc.options {
-				rendererOptions[i] = o
+				options[i] = o
 			}
-			r.AddOptions(rendererOptions...)
-			// Must call Render() to apply options
-			err := r.Render(&bytes.Buffer{}, []byte{}, ast.NewDocument())
-			assert.NoError(err)
-			assert.Equal(tc.expected, nodeRenderer.Config)
+			r.AddOptions(options...)
+			assert.Equal(tc.expected, r.config)
 		})
 	}
 }

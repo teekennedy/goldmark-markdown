@@ -86,12 +86,12 @@ func (t *RegexpLinkTransformer) Transform(node *ast.Document, reader text.Reader
 var source = `
 Standup notes:
 - Previous day:
-    - Gave feedback on TICKET-123.
-    - Outlined presentation on syntax-aware markdown transformations.
-    - Finished my part of TICKET-456 and assigned to Emily.
+  - Gave feedback on TICKET-123.
+  - Outlined presentation on syntax-aware markdown transformations.
+  - Finished my part of TICKET-456 and assigned to Emily.
 - Today:
-    - Add integration tests for TICKET-789.
-    - Create slides for presentation.
+  - Add integration tests for TICKET-789.
+  - Create slides for presentation.
 `
 
 func Example() {
@@ -120,10 +120,10 @@ func Example() {
 	// Output:
 	// Standup notes:
 	// - Previous day:
-	//     - Gave feedback on [TICKET-123](https://example.com/TICKET?query=TICKET-123).
-	//     - Outlined presentation on syntax-aware markdown transformations.
-	//     - Finished my part of [TICKET-456](https://example.com/TICKET?query=TICKET-456) and assigned to Emily.
+	//   - Gave feedback on [TICKET-123](https://example.com/TICKET?query=TICKET-123).
+	//   - Outlined presentation on syntax-aware markdown transformations.
+	//   - Finished my part of [TICKET-456](https://example.com/TICKET?query=TICKET-456) and assigned to Emily.
 	// - Today:
-	//     - Add integration tests for [TICKET-789](https://example.com/TICKET?query=TICKET-789).
-	//     - Create slides for presentation.
+	//   - Add integration tests for [TICKET-789](https://example.com/TICKET?query=TICKET-789).
+	//   - Create slides for presentation.
 }

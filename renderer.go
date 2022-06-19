@@ -4,150 +4,164 @@ package markdown
 import (
 	"bytes"
 	"fmt"
+	"io"
 	"strings"
 
 	"github.com/yuin/goldmark/ast"
 	"github.com/yuin/goldmark/renderer"
-	"github.com/yuin/goldmark/util"
+	"github.com/yuin/goldmark/text"
 )
 
-// NewNodeRenderer returns a new markdown Renderer that is configured by default values.
-func NewNodeRenderer(options ...Option) renderer.NodeRenderer {
+// NewRenderer returns a new markdown Renderer that is configured by default values.
+func NewRenderer(options ...Option) *Renderer {
 	r := &Renderer{
-		Config: NewConfig(),
+		config: NewConfig(),
 		rc:     renderContext{},
-		writer: renderWriter{},
 	}
 	for _, opt := range options {
-		opt.SetMarkdownOption(&r.Config)
+		opt.SetMarkdownOption(r.config)
 	}
 	return r
 }
 
-// NewRenderer returns a new renderer.Renderer containing a markdown NodeRenderer with defaults.
-func NewRenderer(options ...Option) renderer.Renderer {
-	r := NewNodeRenderer(options...)
-	return renderer.NewRenderer(renderer.WithNodeRenderers(util.Prioritized(r, 1000)))
-}
-
 // Renderer is an implementation of renderer.Renderer that renders nodes as Markdown
 type Renderer struct {
-	Config
+	config *Config
 	rc     renderContext
-	writer renderWriter
 }
 
-// RegisterFuncs implements NodeRenderer.RegisterFuncs.
-func (r *Renderer) RegisterFuncs(reg renderer.NodeRendererFuncRegisterer) {
-	// blocks
+// AddOptions implements renderer.Renderer.AddOptions
+func (r *Renderer) AddOptions(opts ...renderer.Option) {
+	config := renderer.NewConfig()
+	for _, opt := range opts {
+		opt.SetConfig(config)
+	}
+	for name, value := range config.Options {
+		r.config.SetOption(name, value)
+	}
+	// TODO handle any config.NodeRenderers set by opts
+}
 
-	reg.Register(ast.KindDocument, r.chainRenderers(r.renderBlockSeparator, r.renderNothing))
-	reg.Register(ast.KindHeading, r.chainRenderers(r.renderBlockSeparator, r.renderHeading))
-	reg.Register(ast.KindCodeBlock, r.chainRenderers(r.renderBlockSeparator, r.renderCodeBlock))
-	reg.Register(ast.KindParagraph, r.chainRenderers(r.renderBlockSeparator, r.renderNothing))
-	// text blocks are essentially paragraphs that aren't wrapped with a <p> tag,
-	// a distinction which doesn't apply to this markdown renderer.
-	reg.Register(ast.KindTextBlock, r.chainRenderers(r.renderBlockSeparator, r.renderNothing))
-	reg.Register(ast.KindThematicBreak, r.chainRenderers(r.renderBlockSeparator, r.renderThematicBreak))
-	reg.Register(ast.KindFencedCodeBlock, r.chainRenderers(r.renderBlockSeparator, r.renderFencedCodeBlock))
-	reg.Register(ast.KindHTMLBlock, r.chainRenderers(r.renderBlockSeparator, r.renderHTMLBlock))
-	reg.Register(ast.KindList, r.chainRenderers(r.renderBlockSeparator, r.renderList))
-	reg.Register(ast.KindListItem, r.chainRenderers(r.renderBlockSeparator, r.renderListItem))
+// Render implements renderer.Renderer.Render
+func (r *Renderer) Render(w io.Writer, source []byte, n ast.Node) error {
+	r.rc = newRenderContext(w, source, r.config)
 	/* TODO
 	reg.Register(ast.KindBlockquote, r.renderBlockquote)
-	*/
-
-	// inlines
-	reg.Register(ast.KindText, r.renderText)
-	reg.Register(ast.KindLink, r.renderLink)
-	reg.Register(ast.KindCodeSpan, r.renderCodeSpan)
-	/* TODO
 	reg.Register(ast.KindString, r.renderString)
 	reg.Register(ast.KindAutoLink, r.renderAutoLink)
 	reg.Register(ast.KindEmphasis, r.renderEmphasis)
 	reg.Register(ast.KindImage, r.renderImage)
 	reg.Register(ast.KindRawHTML, r.renderRawHTML)
 	*/
+	return ast.Walk(n, func(n ast.Node, entering bool) (ast.WalkStatus, error) {
+		return r.getRenderer(n)(n, entering), r.rc.writer.err
+	})
 }
 
-func (r *Renderer) renderBlockSeparator(w util.BufWriter, source []byte, node ast.Node, entering bool) (ast.WalkStatus, error) {
-	if entering {
-		// Add blank previous line if applicable
-		if node.HasBlankPreviousLines() && node.PreviousSibling() != nil {
-			r.writer.WriteString(w, "\n")
-		}
-	} else {
-		// Add trailing newline to block if not already present
-		if r.writer.lastWrittenByte != byte('\n') {
-			r.writer.WriteString(w, "\n")
-		}
+// nodeRenderer is a markdown node renderer func.
+type nodeRenderer func(ast.Node, bool) ast.WalkStatus
+
+func (r *Renderer) getRenderer(node ast.Node) nodeRenderer {
+	renderers := []nodeRenderer{}
+	switch node.Type() {
+	case ast.TypeBlock:
+		renderers = append(renderers, r.renderBlockSeparator)
 	}
-	return ast.WalkContinue, nil
+	switch node.Kind() {
+	case ast.KindHeading:
+		renderers = append(renderers, r.renderHeading)
+	case ast.KindCodeBlock:
+		renderers = append(renderers, r.renderCodeBlock)
+	case ast.KindCodeSpan:
+		renderers = append(renderers, r.renderCodeSpan)
+	case ast.KindThematicBreak:
+		renderers = append(renderers, r.renderThematicBreak)
+	case ast.KindFencedCodeBlock:
+		renderers = append(renderers, r.renderFencedCodeBlock)
+	case ast.KindHTMLBlock:
+		renderers = append(renderers, r.renderHTMLBlock)
+	case ast.KindList:
+		renderers = append(renderers, r.renderList)
+	case ast.KindListItem:
+		renderers = append(renderers, r.renderListItem)
+	case ast.KindText:
+		renderers = append(renderers, r.renderText)
+	case ast.KindLink:
+		renderers = append(renderers, r.renderLink)
+	}
+	return r.chainRenderers(renderers...)
 }
 
-func (r *Renderer) chainRenderers(renderers ...renderer.NodeRendererFunc) renderer.NodeRendererFunc {
-	return func(w util.BufWriter, source []byte, node ast.Node, entering bool) (ast.WalkStatus, error) {
+func (r *Renderer) chainRenderers(renderers ...nodeRenderer) nodeRenderer {
+	return func(node ast.Node, entering bool) ast.WalkStatus {
 		var walkStatus ast.WalkStatus
-		var err error
 		for i := range renderers {
+			if r.rc.writer.Err() != nil {
+				break
+			}
 			// go through renderers in reverse when exiting
 			if !entering {
 				i = len(renderers) - 1 - i
 			}
-			walkStatus, err = renderers[i](w, source, node, entering)
-			if err != nil {
-				break
-			}
+			walkStatus = renderers[i](node, entering)
 		}
-		return walkStatus, err
+		return walkStatus
 	}
 }
 
-func (r *Renderer) renderNothing(w util.BufWriter, source []byte, node ast.Node, entering bool) (ast.WalkStatus, error) {
-	return ast.WalkContinue, nil
+func (r *Renderer) renderBlockSeparator(node ast.Node, entering bool) ast.WalkStatus {
+	if entering {
+		// Add blank previous line if applicable
+		if node.PreviousSibling() != nil && node.HasBlankPreviousLines() {
+			r.rc.writer.EndLine()
+		}
+	} else {
+		// Flush line buffer to complete line written by previous block
+		r.rc.writer.FlushLine()
+	}
+	return ast.WalkContinue
 }
 
-func (r *Renderer) renderHeading(w util.BufWriter, source []byte, node ast.Node, entering bool) (ast.WalkStatus, error) {
+func (r *Renderer) renderHeading(node ast.Node, entering bool) ast.WalkStatus {
 	n := node.(*ast.Heading)
 	// Empty headings or headings above level 2 can only be ATX
 	if !n.HasChildren() || n.Level > 2 {
-		return r.renderATXHeading(w, source, n, entering)
+		return r.renderATXHeading(n, entering)
 	}
 	// Multiline headings can only be Setext
 	if n.Lines().Len() > 1 {
-		return r.renderSetextHeading(w, source, n, entering)
+		return r.renderSetextHeading(n, entering)
 	}
 	// Otherwise it's up to the configuration
-	if r.HeadingStyle.IsSetext() {
-		return r.renderSetextHeading(w, source, n, entering)
+	if r.config.HeadingStyle.IsSetext() {
+		return r.renderSetextHeading(n, entering)
 	}
-	return r.renderATXHeading(w, source, n, entering)
+	return r.renderATXHeading(n, entering)
 }
 
-func (r *Renderer) renderATXHeading(w util.BufWriter, source []byte, node *ast.Heading, entering bool) (ast.WalkStatus, error) {
+func (r *Renderer) renderATXHeading(node *ast.Heading, entering bool) ast.WalkStatus {
 	if entering {
-		atxHeadingChars := strings.Repeat("#", node.Level)
-		fmt.Fprint(w, atxHeadingChars)
+		r.rc.writer.Write(bytes.Repeat([]byte("#"), node.Level))
 		// Only print space after heading if non-empty
 		if node.HasChildren() {
-			fmt.Fprint(w, " ")
+			r.rc.writer.Write([]byte(" "))
 		}
 	} else {
-		if r.HeadingStyle == HeadingStyleATXSurround {
-			atxHeadingChars := strings.Repeat("#", node.Level)
-			fmt.Fprintf(w, " %v", atxHeadingChars)
+		if r.config.HeadingStyle == HeadingStyleATXSurround {
+			r.rc.writer.Write([]byte(" "))
+			r.rc.writer.WriteString(strings.Repeat("#", node.Level))
 		}
 	}
-	return ast.WalkContinue, nil
+	return ast.WalkContinue
 }
 
-func (r *Renderer) renderSetextHeading(w util.BufWriter, source []byte, node *ast.Heading, entering bool) (ast.WalkStatus, error) {
+func (r *Renderer) renderSetextHeading(node *ast.Heading, entering bool) ast.WalkStatus {
 	if entering {
-		return ast.WalkContinue, nil
+		return ast.WalkContinue
 	}
-	underlineChar := [...]string{"", "=", "-"}[node.Level]
+	underlineChar := [...][]byte{[]byte(""), []byte("="), []byte("-")}[node.Level]
 	underlineWidth := 3
-	if r.HeadingStyle == HeadingStyleFullWidthSetext {
+	if r.config.HeadingStyle == HeadingStyleFullWidthSetext {
 		lines := node.Lines()
 		for i := 0; i < lines.Len(); i++ {
 			line := lines.At(i)
@@ -158,132 +172,136 @@ func (r *Renderer) renderSetextHeading(w util.BufWriter, source []byte, node *as
 			}
 		}
 	}
-	fmt.Fprintf(w, "\n%v", strings.Repeat(underlineChar, underlineWidth))
-	return ast.WalkContinue, nil
+	r.rc.writer.Write([]byte("\n"))
+	r.rc.writer.Write(bytes.Repeat(underlineChar, underlineWidth))
+	return ast.WalkContinue
 }
 
-func (r *Renderer) renderThematicBreak(w util.BufWriter, source []byte, node ast.Node, entering bool) (ast.WalkStatus, error) {
+func (r *Renderer) renderThematicBreak(node ast.Node, entering bool) ast.WalkStatus {
 	if entering {
-		breakChar := [...]string{"-", "*", "_"}[r.ThematicBreakStyle]
+		breakChar := [...]string{"-", "*", "_"}[r.config.ThematicBreakStyle]
 		var breakLen int
-		if r.ThematicBreakLength < ThematicBreakLengthMinimum {
+		if r.config.ThematicBreakLength < ThematicBreakLengthMinimum {
 			breakLen = int(ThematicBreakLengthMinimum)
 		} else {
-			breakLen = int(r.ThematicBreakLength)
+			breakLen = int(r.config.ThematicBreakLength)
 		}
-		r.writer.WriteString(w, strings.Repeat(breakChar, breakLen))
+		r.rc.writer.WriteString(strings.Repeat(breakChar, breakLen))
 	}
-	return ast.WalkContinue, nil
+	return ast.WalkContinue
 }
 
-func (r *Renderer) renderCodeBlock(w util.BufWriter, source []byte, node ast.Node, entering bool) (ast.WalkStatus, error) {
-	n := node.(*ast.CodeBlock)
+func (r *Renderer) renderCodeBlock(node ast.Node, entering bool) ast.WalkStatus {
 	if entering {
-		l := n.Lines().Len()
-		for i := 0; i < l; i++ {
-			line := n.Lines().At(i)
-			r.writer.WriteString(w, r.IndentStyle.String())
-			r.writer.Write(w, line.Value(source))
-		}
+		r.rc.writer.PushPrefix(r.config.IndentStyle.Bytes())
+		r.renderLines(node, entering)
+	} else {
+		r.rc.writer.PopPrefix()
 	}
-	return ast.WalkContinue, nil
+	return ast.WalkSkipChildren
 }
 
-func (r *Renderer) renderFencedCodeBlock(w util.BufWriter, source []byte, node ast.Node, entering bool) (ast.WalkStatus, error) {
+func (r *Renderer) renderFencedCodeBlock(node ast.Node, entering bool) ast.WalkStatus {
 	n := node.(*ast.FencedCodeBlock)
-	r.writer.WriteString(w, "```")
+	r.rc.writer.Write([]byte("```"))
 	if entering {
 		if info := n.Info; info != nil {
-			r.writer.Write(w, info.Text(source))
+			r.rc.writer.Write(info.Text(r.rc.source))
 		}
-		r.writer.WriteString(w, "\n")
-		l := n.Lines().Len()
-		for i := 0; i < l; i++ {
-			line := n.Lines().At(i)
-			r.writer.Write(w, line.Value(source))
-		}
+		r.rc.writer.FlushLine()
+		r.renderLines(node, entering)
 	}
-	return ast.WalkContinue, nil
+	return ast.WalkContinue
 }
 
-func (r *Renderer) renderHTMLBlock(w util.BufWriter, source []byte, node ast.Node, entering bool) (ast.WalkStatus, error) {
+func (r *Renderer) renderHTMLBlock(node ast.Node, entering bool) ast.WalkStatus {
 	n := node.(*ast.HTMLBlock)
 	if entering {
-		l := n.Lines().Len()
-		for i := 0; i < l; i++ {
-			line := n.Lines().At(i)
-			r.writer.Write(w, line.Value(source))
-		}
+		r.renderLines(node, entering)
 	} else {
 		if n.HasClosure() {
-			closure := n.ClosureLine
-			r.writer.Write(w, closure.Value(source))
+			r.rc.writer.WriteLine(n.ClosureLine.Value(r.rc.source))
 		}
 	}
-	return ast.WalkContinue, nil
+	return ast.WalkContinue
 }
 
-func (r *Renderer) renderList(w util.BufWriter, source []byte, node ast.Node, entering bool) (ast.WalkStatus, error) {
+func (r *Renderer) renderList(node ast.Node, entering bool) ast.WalkStatus {
 	if entering {
 		n := node.(*ast.List)
 		r.rc.listMarker = n.Marker
-		r.rc.listIndent += 1
-	} else {
-		r.rc.listIndent -= 1
 	}
-	return ast.WalkContinue, nil
+	return ast.WalkContinue
 }
 
-func (r *Renderer) renderListItem(w util.BufWriter, source []byte, node ast.Node, entering bool) (ast.WalkStatus, error) {
+func (r *Renderer) renderListItem(node ast.Node, entering bool) ast.WalkStatus {
 	if entering {
-		n := node.(*ast.ListItem)
-		r.writer.WriteString(w, r.IndentStyle.Indent(r.rc.listIndent-1))
-		r.writer.Write(w, []byte{r.rc.listMarker})
-		if n.HasChildren() {
-			r.writer.WriteString(w, " ")
-		}
+		itemPrefix := []byte{r.rc.listMarker, ' '}
+		// Prefix the current line with the item prefix
+		r.rc.writer.PushPrefix(itemPrefix, 0, 0)
+		// Prefix subsequent lines with padding the same length as the item prefix
+		r.rc.writer.PushPrefix(bytes.Repeat([]byte(" "), len(itemPrefix)), 1)
+	} else {
+		r.rc.writer.PopPrefix()
+		r.rc.writer.PopPrefix()
 	}
-	return ast.WalkContinue, nil
+	return ast.WalkContinue
 }
 
-func (r *Renderer) renderText(w util.BufWriter, source []byte, node ast.Node, entering bool) (ast.WalkStatus, error) {
+func (r *Renderer) renderText(node ast.Node, entering bool) ast.WalkStatus {
 	n := node.(*ast.Text)
 	if entering {
-		text := n.Text(source)
+		text := n.Text(r.rc.source)
 
 		if r.rc.inCodeSpan {
 			text = bytes.ReplaceAll(text, []byte("\n"), []byte(" "))
 		}
 
-		r.writer.Write(w, text)
+		r.rc.writer.Write(text)
 		if n.SoftLineBreak() {
-			r.writer.WriteString(w, "\n")
+			r.rc.writer.WriteString("\n")
 		}
 	}
-	return ast.WalkContinue, nil
+	return ast.WalkContinue
 }
 
-func (r *Renderer) renderLink(w util.BufWriter, source []byte, node ast.Node, entering bool) (ast.WalkStatus, error) {
+func (r *Renderer) renderLineSlice(lines *text.Segments, start, end int) {
+	for i := start; i < end; i++ {
+		line := lines.At(i)
+		value := line.Value(r.rc.source)
+		r.rc.writer.WriteLine(value)
+	}
+}
+
+func (r *Renderer) renderLines(node ast.Node, entering bool) ast.WalkStatus {
+	if entering {
+		lines := node.Lines()
+		r.renderLineSlice(lines, 0, lines.Len())
+	}
+	return ast.WalkContinue
+}
+
+func (r *Renderer) renderLink(node ast.Node, entering bool) ast.WalkStatus {
 	n := node.(*ast.Link)
 	if entering {
-		r.writer.Write(w, []byte("["))
+		r.rc.writer.Write([]byte("["))
 	} else {
 		link := fmt.Sprintf("](%s", n.Destination)
-		r.writer.WriteString(w, link)
+		r.rc.writer.WriteString(link)
 		if len(n.Title) > 0 {
 			title := fmt.Sprintf(" \"%s\"", n.Title)
-			r.writer.WriteString(w, title)
+			r.rc.writer.WriteString(title)
 		}
-		r.writer.WriteString(w, ")")
+		r.rc.writer.WriteString(")")
 	}
-	return ast.WalkContinue, nil
+	return ast.WalkContinue
 }
 
-func (r *Renderer) renderCodeSpan(w util.BufWriter, source []byte, node ast.Node, entering bool) (ast.WalkStatus, error) {
-	if bytes.Count(node.Text(source), []byte("`"))%2 != 0 {
-		r.writer.WriteString(w, "``")
+func (r *Renderer) renderCodeSpan(node ast.Node, entering bool) ast.WalkStatus {
+	if bytes.Count(node.Text(r.rc.source), []byte("`"))%2 != 0 {
+		r.rc.writer.WriteString("``")
 	} else {
-		r.writer.WriteString(w, "`")
+		r.rc.writer.WriteString("`")
 	}
 
 	if entering {
@@ -292,52 +310,23 @@ func (r *Renderer) renderCodeSpan(w util.BufWriter, source []byte, node ast.Node
 		r.rc.inCodeSpan = false
 	}
 
-	return ast.WalkContinue, nil
+	return ast.WalkContinue
 }
 
 type renderContext struct {
-	// listIndent is the current indentation level for List
-	listIndent int
+	writer *markdownWriter
+	// source is the markdown source
+	source []byte
 	// listMarker is the marker character used for the current list
 	listMarker byte
 	// inCodeSpan is true if inside a code span
 	inCodeSpan bool
 }
 
-// renderWriter wraps util.BufWriter methods to implement error handling.
-type renderWriter struct {
-	// err holds the last write error. If non-nil, all write operations become no-ops
-	err error
-	// lastWrittenByte holds the last byte of the last write operation.
-	lastWrittenByte byte
-}
-
-// Write writes the given bytes content to the given writer.
-func (r *renderWriter) Write(writer util.BufWriter, content []byte) {
-	if r.err != nil {
-		return
+// newRenderContext returns a new renderContext object
+func newRenderContext(writer io.Writer, source []byte, config *Config) renderContext {
+	return renderContext{
+		writer: newMarkdownWriter(writer, config),
+		source: source,
 	}
-	var writeLen int
-	writeLen, r.err = writer.Write(content)
-	if writeLen > 0 {
-		r.lastWrittenByte = content[writeLen-1]
-	}
-}
-
-// WriteString writes the given string content to the given writer.
-func (r *renderWriter) WriteString(writer util.BufWriter, content string) {
-	if r.err != nil {
-		return
-	}
-	var writeLen int
-	writeLen, r.err = writer.WriteString(content)
-	if writeLen > 0 {
-		r.lastWrittenByte = content[writeLen-1]
-	}
-}
-
-// Reset resets the error and last written byte state of the renderWriter
-func (r *renderWriter) Reset() {
-	r.err = nil
-	r.lastWrittenByte = byte(0)
 }

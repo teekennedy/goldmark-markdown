@@ -1,8 +1,6 @@
 package markdown
 
 import (
-	"strings"
-
 	"github.com/yuin/goldmark/renderer"
 )
 
@@ -15,15 +13,15 @@ type Config struct {
 }
 
 // NewConfig returns a new Config with defaults and the given options.
-func NewConfig(options ...Option) Config {
-	c := Config{
+func NewConfig(options ...Option) *Config {
+	c := &Config{
 		IndentStyle:         IndentStyle(IndentStyleSpaces),
 		HeadingStyle:        HeadingStyle(HeadingStyleATX),
 		ThematicBreakStyle:  ThematicBreakStyle(ThematicBreakStyleDashed),
 		ThematicBreakLength: ThematicBreakLength(ThematicBreakLengthMinimum),
 	}
 	for _, opt := range options {
-		opt.SetMarkdownOption(&c)
+		opt.SetMarkdownOption(c)
 	}
 	return c
 }
@@ -67,13 +65,8 @@ const (
 )
 
 // String returns the string representation of the indent style
-func (i IndentStyle) String() string {
-	return [...]string{"    ", "\t"}[i]
-}
-
-// Indent returns the string representation of the given indentation level
-func (i IndentStyle) Indent(level int) string {
-	return strings.Repeat(i.String(), level)
+func (i IndentStyle) Bytes() []byte {
+	return [...][]byte{[]byte("    "), []byte("\t")}[i]
 }
 
 type withIndentStyle struct {

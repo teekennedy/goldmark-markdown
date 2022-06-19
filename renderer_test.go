@@ -1,9 +1,7 @@
 package markdown
 
 import (
-	"bufio"
 	"bytes"
-	"fmt"
 	"testing"
 
 	"github.com/rhysd/go-fakeio"
@@ -55,16 +53,16 @@ func TestRenderedOutput(t *testing.T) {
 	}{
 		// Document
 		{
-			"Adds trailing newline",
+			"Empty doc",
 			[]Option{},
 			"",
-			"\n",
+			"",
 		},
 		{
-			"Existing trailing newline",
+			"Non-empty doc trailing newline",
 			[]Option{},
-			"\n",
-			"\n",
+			"x",
+			"x\n",
 		},
 		// Headings
 		{
@@ -363,9 +361,9 @@ func TestRenderedOutput(t *testing.T) {
 		// Lists
 		{
 			"Unordered list",
-			[]Option{WithIndentStyle(IndentStyleTabs)},
-			"- A1\n- B1\n\t- C2\n\t\t- D3\n- E1",
-			"- A1\n- B1\n\t- C2\n\t\t- D3\n- E1\n",
+			[]Option{},
+			"- A1\n- B1\n  - C2\n    - D3\n- E1",
+			"- A1\n- B1\n  - C2\n    - D3\n- E1\n",
 		},
 		// TODO ordered list
 		// Block separators
@@ -466,88 +464,4 @@ func TestRenderedOutput(t *testing.T) {
 			t.Log(transformer.DumpLastAST([]byte(tc.source)))
 		})
 	}
-}
-
-// errorBuf implements util.BufWriter and returns errors for all write operations.
-type errorBuf struct {
-	util.BufWriter
-	lastError  error
-	numWritten int
-}
-
-func (e *errorBuf) Write(p []byte) (n int, err error) {
-	return e.numWritten, e.lastError
-}
-func (e *errorBuf) Available() int {
-	return 0
-}
-func (e *errorBuf) Buffered() int {
-	return 0
-}
-func (e *errorBuf) Flush() error {
-	return e.lastError
-}
-func (e *errorBuf) WriteByte(c byte) error {
-	return e.lastError
-}
-
-func (e *errorBuf) WriteRune(r rune) (size int, err error) {
-	return e.numWritten, e.lastError
-}
-
-func (e *errorBuf) WriteString(s string) (int, error) {
-	return e.numWritten, e.lastError
-}
-
-// TestRenderWriter tests the renderer's implementation of goldmark's util.BufWriter interface,
-// a subset of bufio.Writer.
-func TestRenderWriter(t *testing.T) {
-	bufBytes := bytes.Buffer{}
-	bufWriter := bufio.NewWriter(&bufBytes)
-	writer := renderWriter{}
-	assert := assert.New(t)
-
-	// WriteString
-	data := "foobar"
-	writer.WriteString(bufWriter, data)
-	assert.NoError(bufWriter.Flush())
-	assert.Equal(bufBytes.String(), data)
-	assert.Equal(writer.lastWrittenByte, data[len(data)-1])
-	assert.NoError(writer.err)
-
-	bufBytes.Reset()
-
-	// Write
-	data2 := []byte("raboof")
-	writer.Write(bufWriter, data2)
-
-	assert.NoError(bufWriter.Flush())
-	assert.Equal(bufBytes.Bytes(), data2)
-	assert.Equal(writer.lastWrittenByte, data2[len(data2)-1])
-	assert.NoError(writer.err)
-
-	// Write with error
-	errString := "test error"
-	errWriter := errorBuf{lastError: fmt.Errorf(errString), numWritten: 1}
-	data3 := "zxyq"
-	writer.WriteString(&errWriter, data3)
-
-	assert.EqualError(writer.err, errString)
-	assert.Equal(string(writer.lastWrittenByte), string(data3[errWriter.numWritten-1]))
-
-	bufBytes.Reset()
-
-	// Further writes are no-ops
-	writer.WriteString(bufWriter, data)
-	writer.Write(bufWriter, data2)
-
-	assert.NoError(bufWriter.Flush())
-	assert.EqualError(writer.err, errString)
-	assert.Equal(bufBytes.Bytes(), []byte{})
-	assert.Equal(string(writer.lastWrittenByte), string(data3[errWriter.numWritten-1]))
-
-	// Reset clears error state
-	writer.Reset()
-	assert.NoError(writer.err)
-	assert.Equal(writer.lastWrittenByte, byte(0))
 }
