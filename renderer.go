@@ -49,7 +49,6 @@ func (r *Renderer) Render(w io.Writer, source []byte, n ast.Node) error {
 	reg.Register(ast.KindBlockquote, r.renderBlockquote)
 	reg.Register(ast.KindString, r.renderString)
 	reg.Register(ast.KindAutoLink, r.renderAutoLink)
-	reg.Register(ast.KindEmphasis, r.renderEmphasis)
 	reg.Register(ast.KindImage, r.renderImage)
 	reg.Register(ast.KindRawHTML, r.renderRawHTML)
 	*/
@@ -74,6 +73,8 @@ func (r *Renderer) getRenderer(node ast.Node) nodeRenderer {
 		renderers = append(renderers, r.renderCodeBlock)
 	case ast.KindCodeSpan:
 		renderers = append(renderers, r.renderCodeSpan)
+	case ast.KindEmphasis:
+		renderers = append(renderers, r.renderEmphasis)
 	case ast.KindThematicBreak:
 		renderers = append(renderers, r.renderThematicBreak)
 	case ast.KindFencedCodeBlock:
@@ -307,6 +308,12 @@ func (r *Renderer) renderCodeSpan(node ast.Node, entering bool) ast.WalkStatus {
 		r.rc.inCodeSpan = false
 	}
 
+	return ast.WalkContinue
+}
+
+func (r *Renderer) renderEmphasis(node ast.Node, entering bool) ast.WalkStatus {
+	n := node.(*ast.Emphasis)
+	r.rc.writer.Write(bytes.Repeat([]byte{'*'}, n.Level))
 	return ast.WalkContinue
 }
 

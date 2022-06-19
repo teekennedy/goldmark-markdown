@@ -267,6 +267,49 @@ func TestRenderedOutput(t *testing.T) {
 			"`foo``bar``",
 			"`foo`bar`\n",
 		},
+		// Emphasis
+		{
+			"Emphasis",
+			[]Option{},
+			"*emph*",
+			"*emph*\n",
+		},
+		{
+			"Strong",
+			[]Option{},
+			"**strong**",
+			"**strong**\n",
+		},
+		{
+			"Strong emphasis",
+			[]Option{},
+			"***strong emph***",
+			"***strong emph***\n",
+		},
+		{
+			"Strong in emphasis",
+			[]Option{},
+			"***strong** in emph*",
+			"***strong** in emph*\n",
+		},
+		{
+			"Emphasis in strong",
+			[]Option{},
+			"***emph* in strong**",
+			"***emph* in strong**\n",
+		},
+		{
+			"Escaped emphasis",
+			[]Option{},
+			"*escaped\\*emphasis*",
+			"*escaped\\*emphasis*\n",
+		},
+		{
+			"In emphasis strong",
+			[]Option{},
+			"*in emph **strong***",
+			"*in emph **strong***\n",
+		},
 		// Paragraph
 		{
 			"Simple paragraph",
