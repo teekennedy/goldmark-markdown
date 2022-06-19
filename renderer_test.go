@@ -229,13 +229,12 @@ func TestRenderedOutput(t *testing.T) {
 			"`<a href=\"`\">`",
 			"`<a href=\"`\">`\n",
 		},
-		// TODO: support KindRawHTML
-		// {
-		// 	"HTML tag with backtick",
-		// 	[]Option{},
-		// 	"<a href=\"`\">`",
-		// 	"<a href=\"`\">`",
-		// },
+		{
+			"HTML tag with backtick",
+			[]Option{},
+			"<a href=\"`\">`",
+			"<a href=\"`\">`\n",
+		},
 		{
 			"Autolink split by a backtick",
 			[]Option{},
@@ -373,6 +372,25 @@ func TestRenderedOutput(t *testing.T) {
 			[]Option{},
 			"```\n!@#$%^&*\\[],./;'()\n```",
 			"```\n!@#$%^&*\\[],./;'()\n```\n",
+		},
+		// Raw HTML
+		{
+			"Raw HTML open tags",
+			[]Option{},
+			"<a><bab><c2c>",
+			"<a><bab><c2c>\n",
+		},
+		{
+			"Raw HTML empty elements",
+			[]Option{},
+			"<a/><b2/>",
+			"<a/><b2/>\n",
+		},
+		{
+			"Raw HTML with attributes",
+			[]Option{},
+			"<a foo=\"bar\" bam = 'baz <em>\"</em>'\n_boolean zoop:33=zoop:33 />",
+			"<a foo=\"bar\" bam = 'baz <em>\"</em>'\n_boolean zoop:33=zoop:33 />\n",
 		},
 		// HTML blocks
 		{

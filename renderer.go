@@ -50,7 +50,6 @@ func (r *Renderer) Render(w io.Writer, source []byte, n ast.Node) error {
 	reg.Register(ast.KindString, r.renderString)
 	reg.Register(ast.KindAutoLink, r.renderAutoLink)
 	reg.Register(ast.KindImage, r.renderImage)
-	reg.Register(ast.KindRawHTML, r.renderRawHTML)
 	*/
 	return ast.Walk(n, func(n ast.Node, entering bool) (ast.WalkStatus, error) {
 		return r.getRenderer(n)(n, entering), r.rc.writer.Err()
@@ -85,6 +84,8 @@ func (r *Renderer) getRenderer(node ast.Node) nodeRenderer {
 		renderers = append(renderers, r.renderList)
 	case ast.KindListItem:
 		renderers = append(renderers, r.renderListItem)
+	case ast.KindRawHTML:
+		renderers = append(renderers, r.renderRawHTML)
 	case ast.KindText:
 		renderers = append(renderers, r.renderText)
 	case ast.KindLink:
@@ -246,6 +247,14 @@ func (r *Renderer) renderListItem(node ast.Node, entering bool) ast.WalkStatus {
 	return ast.WalkContinue
 }
 
+func (r *Renderer) renderRawHTML(node ast.Node, entering bool) ast.WalkStatus {
+	n := node.(*ast.RawHTML)
+	if entering {
+		r.renderSegments(n.Segments, false)
+	}
+	return ast.WalkContinue
+}
+
 func (r *Renderer) renderText(node ast.Node, entering bool) ast.WalkStatus {
 	n := node.(*ast.Text)
 	if entering {
@@ -263,18 +272,21 @@ func (r *Renderer) renderText(node ast.Node, entering bool) ast.WalkStatus {
 	return ast.WalkContinue
 }
 
-func (r *Renderer) renderLineSlice(lines *text.Segments, start, end int) {
-	for i := start; i < end; i++ {
-		line := lines.At(i)
-		value := line.Value(r.rc.source)
-		r.rc.writer.WriteLine(value)
+func (r *Renderer) renderSegments(segments *text.Segments, asLines bool) {
+	for i := 0; i < segments.Len(); i++ {
+		segment := segments.At(i)
+		value := segment.Value(r.rc.source)
+		r.rc.writer.Write(value)
+		if asLines {
+			r.rc.writer.FlushLine()
+		}
 	}
 }
 
 func (r *Renderer) renderLines(node ast.Node, entering bool) ast.WalkStatus {
 	if entering {
 		lines := node.Lines()
-		r.renderLineSlice(lines, 0, lines.Len())
+		r.renderSegments(lines, true)
 	}
 	return ast.WalkContinue
 }
