@@ -54,7 +54,7 @@ func (r *Renderer) Render(w io.Writer, source []byte, n ast.Node) error {
 	reg.Register(ast.KindRawHTML, r.renderRawHTML)
 	*/
 	return ast.Walk(n, func(n ast.Node, entering bool) (ast.WalkStatus, error) {
-		return r.getRenderer(n)(n, entering), r.rc.writer.err
+		return r.getRenderer(n)(n, entering), r.rc.writer.Err()
 	})
 }
 
@@ -96,9 +96,6 @@ func (r *Renderer) chainRenderers(renderers ...nodeRenderer) nodeRenderer {
 	return func(node ast.Node, entering bool) ast.WalkStatus {
 		var walkStatus ast.WalkStatus
 		for i := range renderers {
-			if r.rc.writer.Err() != nil {
-				break
-			}
 			// go through renderers in reverse when exiting
 			if !entering {
 				i = len(renderers) - 1 - i

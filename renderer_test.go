@@ -2,6 +2,7 @@ package markdown
 
 import (
 	"bytes"
+	"fmt"
 	"testing"
 
 	"github.com/rhysd/go-fakeio"
@@ -41,6 +42,21 @@ func (t *testHelperASTTransformer) DumpLastAST(source []byte) string {
 		panic(err)
 	}
 	return result
+}
+
+// TestRenderError tests the renderer's behavior when an error is encountered
+func TestRenderError(t *testing.T) {
+	err := fmt.Errorf("TestRenderError")
+	ew := &errorWriter{err: err}
+	renderer := NewRenderer()
+	source := []byte("foo")
+	paragraph := ast.NewParagraph()
+	paragraph.SetBlankPreviousLines(true)
+	text := ast.NewTextSegment(text.NewSegment(0, len(source)))
+	paragraph.AppendChild(paragraph, text)
+
+	result := renderer.Render(ew, source, paragraph)
+	assert.Equal(t, err, result)
 }
 
 // TestRenderedOutput tests that the renderer produces the expected output for all test cases
