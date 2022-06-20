@@ -182,22 +182,10 @@ func TestRenderedOutput(t *testing.T) {
 			"` `\n`  `\n",
 		},
 		{
-			"Multiple line-endings treated as spaces",
-			[]Option{},
-			"``\nfoo\nbar  \nbaz\n``",
-			"`foo bar   baz`\n",
-		},
-		{
 			"Line-ending treated as space",
 			[]Option{},
 			"``\nfoo \n``",
 			"`foo `\n",
-		},
-		{
-			"Interior spaces are not collapsed",
-			[]Option{},
-			"`foo   bar \nbaz`",
-			"`foo   bar  baz`\n",
 		},
 		{
 			"Backlashes are treated literally",

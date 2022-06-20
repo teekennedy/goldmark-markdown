@@ -260,10 +260,6 @@ func (r *Renderer) renderText(node ast.Node, entering bool) ast.WalkStatus {
 	if entering {
 		text := n.Text(r.rc.source)
 
-		if r.rc.inCodeSpan {
-			text = bytes.ReplaceAll(text, []byte("\n"), []byte(" "))
-		}
-
 		r.rc.writer.Write(text)
 		if n.SoftLineBreak() {
 			r.rc.writer.WriteString("\n")
@@ -314,12 +310,6 @@ func (r *Renderer) renderCodeSpan(node ast.Node, entering bool) ast.WalkStatus {
 		r.rc.writer.WriteString("`")
 	}
 
-	if entering {
-		r.rc.inCodeSpan = true
-	} else {
-		r.rc.inCodeSpan = false
-	}
-
 	return ast.WalkContinue
 }
 
@@ -335,8 +325,6 @@ type renderContext struct {
 	source []byte
 	// listMarker is the marker character used for the current list
 	listMarker byte
-	// inCodeSpan is true if inside a code span
-	inCodeSpan bool
 }
 
 // newRenderContext returns a new renderContext object
