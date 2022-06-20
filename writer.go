@@ -131,17 +131,6 @@ func (m *markdownWriter) Write(data []byte) (n int) {
 	return n
 }
 
-// Write writes the given data to an internal buffer, then writes any complete lines to the
-// underlying writer.
-// TODO reduce copying data by making all write operations byte based and deleting this method.
-func (m *markdownWriter) WriteString(data string) int {
-	n := 0
-	if m.err == nil {
-		n, _ = io.WriteString(m.buf, data)
-	}
-	return n
-}
-
 // Err returns the last write error, or nil.
 func (m *markdownWriter) Err() error {
 	return m.err

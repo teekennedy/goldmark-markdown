@@ -3,9 +3,7 @@ package markdown
 
 import (
 	"bytes"
-	"fmt"
 	"io"
-	"strings"
 
 	"github.com/yuin/goldmark/ast"
 	"github.com/yuin/goldmark/renderer"
@@ -148,7 +146,7 @@ func (r *Renderer) renderATXHeading(node *ast.Heading, entering bool) ast.WalkSt
 	} else {
 		if r.config.HeadingStyle == HeadingStyleATXSurround {
 			r.rc.writer.Write([]byte(" "))
-			r.rc.writer.WriteString(strings.Repeat("#", node.Level))
+			r.rc.writer.Write(bytes.Repeat([]byte("#"), node.Level))
 		}
 	}
 	return ast.WalkContinue
@@ -178,14 +176,15 @@ func (r *Renderer) renderSetextHeading(node *ast.Heading, entering bool) ast.Wal
 
 func (r *Renderer) renderThematicBreak(node ast.Node, entering bool) ast.WalkStatus {
 	if entering {
-		breakChar := [...]string{"-", "*", "_"}[r.config.ThematicBreakStyle]
+		breakChars := []byte{'-', '*', '_'}
+		breakChar := breakChars[r.config.ThematicBreakStyle : r.config.ThematicBreakStyle+1]
 		var breakLen int
 		if r.config.ThematicBreakLength < ThematicBreakLengthMinimum {
 			breakLen = int(ThematicBreakLengthMinimum)
 		} else {
 			breakLen = int(r.config.ThematicBreakLength)
 		}
-		r.rc.writer.WriteString(strings.Repeat(breakChar, breakLen))
+		r.rc.writer.Write(bytes.Repeat(breakChar, breakLen))
 	}
 	return ast.WalkContinue
 }
@@ -262,7 +261,7 @@ func (r *Renderer) renderText(node ast.Node, entering bool) ast.WalkStatus {
 
 		r.rc.writer.Write(text)
 		if n.SoftLineBreak() {
-			r.rc.writer.WriteString("\n")
+			r.rc.writer.EndLine()
 		}
 	}
 	return ast.WalkContinue
@@ -292,22 +291,23 @@ func (r *Renderer) renderLink(node ast.Node, entering bool) ast.WalkStatus {
 	if entering {
 		r.rc.writer.Write([]byte("["))
 	} else {
-		link := fmt.Sprintf("](%s", n.Destination)
-		r.rc.writer.WriteString(link)
+		r.rc.writer.Write([]byte("]("))
+		r.rc.writer.Write(n.Destination)
 		if len(n.Title) > 0 {
-			title := fmt.Sprintf(" \"%s\"", n.Title)
-			r.rc.writer.WriteString(title)
+			r.rc.writer.Write([]byte(" \""))
+			r.rc.writer.Write(n.Title)
+			r.rc.writer.Write([]byte("\""))
 		}
-		r.rc.writer.WriteString(")")
+		r.rc.writer.Write([]byte(")"))
 	}
 	return ast.WalkContinue
 }
 
 func (r *Renderer) renderCodeSpan(node ast.Node, entering bool) ast.WalkStatus {
 	if bytes.Count(node.Text(r.rc.source), []byte("`"))%2 != 0 {
-		r.rc.writer.WriteString("``")
+		r.rc.writer.Write([]byte("``"))
 	} else {
-		r.rc.writer.WriteString("`")
+		r.rc.writer.Write([]byte("`"))
 	}
 
 	return ast.WalkContinue
