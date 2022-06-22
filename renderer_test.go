@@ -125,6 +125,19 @@ func TestRenderedOutput(t *testing.T) {
 			"Foo\nBar\n---",
 			"Foo\nBar\n---\n",
 		},
+		// Autolink
+		{
+			"Url autolink",
+			[]Option{},
+			"<https://github.com/teekennedy/github-markdown>",
+			"<https://github.com/teekennedy/github-markdown>\n",
+		},
+		{
+			"Mailto autolink",
+			[]Option{},
+			"<foo@bar.com>",
+			"<foo@bar.com>\n",
+		},
 		// Code Block
 		{
 			"Space indented code block",
@@ -229,13 +242,6 @@ func TestRenderedOutput(t *testing.T) {
 			"`<http://foo.bar.`baz>`",
 			"`<http://foo.bar.`baz>`\n",
 		},
-		// TODO: support KindAutoLink
-		// {
-		// 	"Autolink with a backtick",
-		// 	[]Option{},
-		// 	"<http://foo.bar.`baz>`",
-		// 	"<http://foo.bar.`baz>`\n",
-		// },
 		{
 			"Unbalanced 3-2 backticks remain intact",
 			[]Option{},

@@ -46,7 +46,6 @@ func (r *Renderer) Render(w io.Writer, source []byte, n ast.Node) error {
 	/* TODO
 	reg.Register(ast.KindBlockquote, r.renderBlockquote)
 	reg.Register(ast.KindString, r.renderString)
-	reg.Register(ast.KindAutoLink, r.renderAutoLink)
 	reg.Register(ast.KindImage, r.renderImage)
 	*/
 	return ast.Walk(n, func(n ast.Node, entering bool) (ast.WalkStatus, error) {
@@ -64,6 +63,8 @@ func (r *Renderer) getRenderer(node ast.Node) nodeRenderer {
 		renderers = append(renderers, r.renderBlockSeparator)
 	}
 	switch node.Kind() {
+	case ast.KindAutoLink:
+		renderers = append(renderers, r.renderAutoLink)
 	case ast.KindHeading:
 		renderers = append(renderers, r.renderHeading)
 	case ast.KindCodeBlock:
@@ -115,6 +116,17 @@ func (r *Renderer) renderBlockSeparator(node ast.Node, entering bool) ast.WalkSt
 	} else {
 		// Flush line buffer to complete line written by previous block
 		r.rc.writer.FlushLine()
+	}
+	return ast.WalkContinue
+}
+
+func (r *Renderer) renderAutoLink(node ast.Node, entering bool) ast.WalkStatus {
+	n := node.(*ast.AutoLink)
+	if entering {
+		r.rc.writer.Write([]byte("<"))
+		r.rc.writer.Write(n.URL(r.rc.source))
+	} else {
+		r.rc.writer.Write([]byte(">"))
 	}
 	return ast.WalkContinue
 }
