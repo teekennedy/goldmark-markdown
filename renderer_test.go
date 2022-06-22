@@ -532,6 +532,25 @@ func TestRenderedOutput(t *testing.T) {
 			"[link](/uri \"title\")",
 			"[link](/uri \"title\")\n",
 		},
+		// Images
+		{
+			"Empty image",
+			[]Option{},
+			"![]()",
+			"![]()\n",
+		},
+		{
+			"Image",
+			[]Option{},
+			"![image](/uri)",
+			"![image](/uri)\n",
+		},
+		{
+			"Image with title",
+			[]Option{},
+			"![image](/uri \"title\")",
+			"![image](/uri \"title\")\n",
+		},
 	}
 
 	for _, tc := range testCases {

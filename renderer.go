@@ -45,7 +45,6 @@ func (r *Renderer) Render(w io.Writer, source []byte, n ast.Node) error {
 	r.rc = newRenderContext(w, source, r.config)
 	/* TODO
 	reg.Register(ast.KindString, r.renderString)
-	reg.Register(ast.KindImage, r.renderImage)
 	*/
 	return ast.Walk(n, func(n ast.Node, entering bool) (ast.WalkStatus, error) {
 		return r.getRenderer(n)(n, entering), r.rc.writer.Err()
@@ -80,6 +79,8 @@ func (r *Renderer) getRenderer(node ast.Node) nodeRenderer {
 		renderers = append(renderers, r.renderFencedCodeBlock)
 	case ast.KindHTMLBlock:
 		renderers = append(renderers, r.renderHTMLBlock)
+	case ast.KindImage:
+		renderers = append(renderers, r.renderImage)
 	case ast.KindList:
 		renderers = append(renderers, r.renderList)
 	case ast.KindListItem:
@@ -310,14 +311,26 @@ func (r *Renderer) renderLines(node ast.Node, entering bool) ast.WalkStatus {
 
 func (r *Renderer) renderLink(node ast.Node, entering bool) ast.WalkStatus {
 	n := node.(*ast.Link)
+	return r.renderLinkCommon(n.Title, n.Destination, entering)
+}
+
+func (r *Renderer) renderImage(node ast.Node, entering bool) ast.WalkStatus {
+	n := node.(*ast.Image)
+	if entering {
+		r.rc.writer.Write([]byte("!"))
+	}
+	return r.renderLinkCommon(n.Title, n.Destination, entering)
+}
+
+func (r *Renderer) renderLinkCommon(title, destination []byte, entering bool) ast.WalkStatus {
 	if entering {
 		r.rc.writer.Write([]byte("["))
 	} else {
 		r.rc.writer.Write([]byte("]("))
-		r.rc.writer.Write(n.Destination)
-		if len(n.Title) > 0 {
+		r.rc.writer.Write(destination)
+		if len(title) > 0 {
 			r.rc.writer.Write([]byte(" \""))
-			r.rc.writer.Write(n.Title)
+			r.rc.writer.Write(title)
 			r.rc.writer.Write([]byte("\""))
 		}
 		r.rc.writer.Write([]byte(")"))
