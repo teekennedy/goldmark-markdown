@@ -138,6 +138,19 @@ func TestRenderedOutput(t *testing.T) {
 			"<foo@bar.com>",
 			"<foo@bar.com>\n",
 		},
+		// Blockquote
+		{
+			"Blockquote",
+			[]Option{},
+			"> You will speak\n> an infinite deal\n> of nothing\n\n\\- William Shakespeare",
+			"> You will speak\n> an infinite deal\n> of nothing\n\n\\- William Shakespeare\n",
+		},
+		{
+			"Nested blockquote",
+			[]Option{},
+			"> one\n> > two\n> > > three\n\n> one again",
+			"> one\n> > two\n> > > three\n\n> one again\n",
+		},
 		// Code Block
 		{
 			"Space indented code block",

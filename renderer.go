@@ -44,7 +44,6 @@ func (r *Renderer) AddOptions(opts ...renderer.Option) {
 func (r *Renderer) Render(w io.Writer, source []byte, n ast.Node) error {
 	r.rc = newRenderContext(w, source, r.config)
 	/* TODO
-	reg.Register(ast.KindBlockquote, r.renderBlockquote)
 	reg.Register(ast.KindString, r.renderString)
 	reg.Register(ast.KindImage, r.renderImage)
 	*/
@@ -67,6 +66,8 @@ func (r *Renderer) getRenderer(node ast.Node) nodeRenderer {
 		renderers = append(renderers, r.renderAutoLink)
 	case ast.KindHeading:
 		renderers = append(renderers, r.renderHeading)
+	case ast.KindBlockquote:
+		renderers = append(renderers, r.renderBlockquote)
 	case ast.KindCodeBlock:
 		renderers = append(renderers, r.renderCodeBlock)
 	case ast.KindCodeSpan:
@@ -127,6 +128,15 @@ func (r *Renderer) renderAutoLink(node ast.Node, entering bool) ast.WalkStatus {
 		r.rc.writer.Write(n.URL(r.rc.source))
 	} else {
 		r.rc.writer.Write([]byte(">"))
+	}
+	return ast.WalkContinue
+}
+
+func (r *Renderer) renderBlockquote(node ast.Node, entering bool) ast.WalkStatus {
+	if entering {
+		r.rc.writer.PushPrefix([]byte("> "))
+	} else {
+		r.rc.writer.PopPrefix()
 	}
 	return ast.WalkContinue
 }
@@ -208,7 +218,7 @@ func (r *Renderer) renderCodeBlock(node ast.Node, entering bool) ast.WalkStatus 
 	} else {
 		r.rc.writer.PopPrefix()
 	}
-	return ast.WalkSkipChildren
+	return ast.WalkContinue
 }
 
 func (r *Renderer) renderFencedCodeBlock(node ast.Node, entering bool) ast.WalkStatus {
