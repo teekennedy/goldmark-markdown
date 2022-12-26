@@ -160,15 +160,19 @@ func TestWriteError(t *testing.T) {
 	writer := newMarkdownWriter(&ew, NewConfig())
 	data := []byte("foo\n")
 
-	assert.Equal(len(data), writer.Write(data), "Writes should succeed before error")
+	var n int
+	n, _ = writer.Write(data)
+	assert.Equal(len(data), n, "Writes should succeed before error")
 	assert.Equal(len(data), writer.WriteLine(data), "Writes should succeed before error")
 	ew.err = err
-	assert.Equal(0, writer.Write(data), "Once error is set, writes become no-op")
+	n, _ = writer.Write(data)
+	assert.Equal(0, n, "Once error is set, writes become no-op")
 	assert.Equal(0, writer.WriteLine(data), "Once error is set, writes become no-op")
 	assert.Equal(err, writer.Err(), "Err() should match error returned by errorWriter")
 
 	ew.err = nil
 	writer.Reset(&ew)
-	assert.Equal(len(data), writer.Write(data), "Writes should succeed after Reset")
+	n, _ = writer.Write(data)
+	assert.Equal(len(data), n, "Writes should succeed after Reset")
 	assert.Equal(len(data), writer.WriteLine(data), "Writes should succeed after Reset")
 }

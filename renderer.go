@@ -5,6 +5,7 @@ import (
 	"bytes"
 	"fmt"
 	"io"
+	"sync"
 
 	"github.com/yuin/goldmark/ast"
 	"github.com/yuin/goldmark/renderer"
@@ -14,8 +15,10 @@ import (
 // NewRenderer returns a new markdown Renderer that is configured by default values.
 func NewRenderer(options ...Option) *Renderer {
 	r := &Renderer{
-		config: NewConfig(),
-		rc:     renderContext{},
+		config:               NewConfig(),
+		rc:                   renderContext{},
+		maxKind:              20, // a random number slightly larger than the number of default ast kinds
+		nodeRendererFuncsTmp: map[ast.NodeKind]renderer.NodeRendererFunc{},
 	}
 	for _, opt := range options {
 		opt.SetMarkdownOption(r.config)
@@ -25,9 +28,15 @@ func NewRenderer(options ...Option) *Renderer {
 
 // Renderer is an implementation of renderer.Renderer that renders nodes as Markdown
 type Renderer struct {
-	config *Config
-	rc     renderContext
+	config               *Config
+	rc                   renderContext
+	nodeRendererFuncsTmp map[ast.NodeKind]renderer.NodeRendererFunc
+	maxKind              int
+	nodeRendererFuncs    []nodeRenderer
+	initSync             sync.Once
 }
+
+var _ renderer.Renderer = &Renderer{}
 
 // AddOptions implements renderer.Renderer.AddOptions
 func (r *Renderer) AddOptions(opts ...renderer.Option) {
@@ -38,63 +47,73 @@ func (r *Renderer) AddOptions(opts ...renderer.Option) {
 	for name, value := range config.Options {
 		r.config.SetOption(name, value)
 	}
-	// TODO handle any config.NodeRenderers set by opts
+
+	// handle any config.NodeRenderers set by opts
+	config.NodeRenderers.Sort()
+	l := len(config.NodeRenderers)
+	for i := l - 1; i >= 0; i-- {
+		v := config.NodeRenderers[i]
+		nr, _ := v.Value.(renderer.NodeRenderer)
+		nr.RegisterFuncs(r)
+	}
+}
+
+func (r *Renderer) Register(kind ast.NodeKind, fun renderer.NodeRendererFunc) {
+	r.nodeRendererFuncsTmp[kind] = fun
+	if int(kind) > r.maxKind {
+		r.maxKind = int(kind)
+	}
 }
 
 // Render implements renderer.Renderer.Render
 func (r *Renderer) Render(w io.Writer, source []byte, n ast.Node) error {
 	r.rc = newRenderContext(w, source, r.config)
-	/* TODO
-	reg.Register(ast.KindString, r.renderString)
-	*/
-	return ast.Walk(n, func(n ast.Node, entering bool) (ast.WalkStatus, error) {
-		return r.getRenderer(n)(n, entering), r.rc.writer.Err()
+	r.initSync.Do(func() {
+		r.nodeRendererFuncs = make([]nodeRenderer, r.maxKind+1)
+		// add default functions
+		// blocks
+		r.nodeRendererFuncs[ast.KindDocument] = r.renderBlockSeparator
+		r.nodeRendererFuncs[ast.KindHeading] = r.chainRenderers(r.renderBlockSeparator, r.renderHeading)
+		r.nodeRendererFuncs[ast.KindBlockquote] = r.chainRenderers(r.renderBlockSeparator, r.renderBlockquote)
+		r.nodeRendererFuncs[ast.KindCodeBlock] = r.chainRenderers(r.renderBlockSeparator, r.renderCodeBlock)
+		r.nodeRendererFuncs[ast.KindFencedCodeBlock] = r.chainRenderers(r.renderBlockSeparator, r.renderFencedCodeBlock)
+		r.nodeRendererFuncs[ast.KindHTMLBlock] = r.chainRenderers(r.renderBlockSeparator, r.renderHTMLBlock)
+		r.nodeRendererFuncs[ast.KindList] = r.chainRenderers(r.renderBlockSeparator, r.renderList)
+		r.nodeRendererFuncs[ast.KindListItem] = r.chainRenderers(r.renderBlockSeparator, r.renderListItem)
+		r.nodeRendererFuncs[ast.KindParagraph] = r.renderBlockSeparator
+		r.nodeRendererFuncs[ast.KindTextBlock] = r.renderBlockSeparator
+		r.nodeRendererFuncs[ast.KindThematicBreak] = r.chainRenderers(r.renderBlockSeparator, r.renderThematicBreak)
+
+		// inlines
+		r.nodeRendererFuncs[ast.KindAutoLink] = r.renderAutoLink
+		r.nodeRendererFuncs[ast.KindCodeSpan] = r.renderCodeSpan
+		r.nodeRendererFuncs[ast.KindEmphasis] = r.renderEmphasis
+		r.nodeRendererFuncs[ast.KindImage] = r.renderImage
+		r.nodeRendererFuncs[ast.KindLink] = r.renderLink
+		r.nodeRendererFuncs[ast.KindRawHTML] = r.renderRawHTML
+		r.nodeRendererFuncs[ast.KindText] = r.renderText
+		// TODO: add KindString
+		// r.nodeRendererFuncs[ast.KindString] = r.renderString
+
+		for kind, fun := range r.nodeRendererFuncsTmp {
+			r.nodeRendererFuncs[kind] = r.transform(fun)
+		}
+		r.nodeRendererFuncsTmp = nil
 	})
+	return ast.Walk(n, func(n ast.Node, entering bool) (ast.WalkStatus, error) {
+		return r.nodeRendererFuncs[n.Kind()](n, entering), r.rc.writer.Err()
+	})
+}
+
+func (r *Renderer) transform(fn renderer.NodeRendererFunc) nodeRenderer {
+	return func(n ast.Node, entering bool) ast.WalkStatus {
+		status, _ := fn(r.rc.writer, r.rc.source, n, entering)
+		return status
+	}
 }
 
 // nodeRenderer is a markdown node renderer func.
 type nodeRenderer func(ast.Node, bool) ast.WalkStatus
-
-func (r *Renderer) getRenderer(node ast.Node) nodeRenderer {
-	renderers := []nodeRenderer{}
-	switch node.Type() {
-	case ast.TypeBlock:
-		renderers = append(renderers, r.renderBlockSeparator)
-	}
-	switch node.Kind() {
-	case ast.KindAutoLink:
-		renderers = append(renderers, r.renderAutoLink)
-	case ast.KindHeading:
-		renderers = append(renderers, r.renderHeading)
-	case ast.KindBlockquote:
-		renderers = append(renderers, r.renderBlockquote)
-	case ast.KindCodeBlock:
-		renderers = append(renderers, r.renderCodeBlock)
-	case ast.KindCodeSpan:
-		renderers = append(renderers, r.renderCodeSpan)
-	case ast.KindEmphasis:
-		renderers = append(renderers, r.renderEmphasis)
-	case ast.KindThematicBreak:
-		renderers = append(renderers, r.renderThematicBreak)
-	case ast.KindFencedCodeBlock:
-		renderers = append(renderers, r.renderFencedCodeBlock)
-	case ast.KindHTMLBlock:
-		renderers = append(renderers, r.renderHTMLBlock)
-	case ast.KindImage:
-		renderers = append(renderers, r.renderImage)
-	case ast.KindList:
-		renderers = append(renderers, r.renderList)
-	case ast.KindListItem:
-		renderers = append(renderers, r.renderListItem)
-	case ast.KindRawHTML:
-		renderers = append(renderers, r.renderRawHTML)
-	case ast.KindText:
-		renderers = append(renderers, r.renderText)
-	case ast.KindLink:
-		renderers = append(renderers, r.renderLink)
-	}
-	return r.chainRenderers(renderers...)
-}
 
 func (r *Renderer) chainRenderers(renderers ...nodeRenderer) nodeRenderer {
 	return func(node ast.Node, entering bool) ast.WalkStatus {
