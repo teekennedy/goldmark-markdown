@@ -449,7 +449,18 @@ func TestRenderedOutput(t *testing.T) {
 			"- A1\n- B1\n  - C2\n    - D3\n- E1",
 			"- A1\n- B1\n  - C2\n    - D3\n- E1\n",
 		},
-		// TODO ordered list
+		{
+			"Ordered list",
+			[]Option{},
+			"1. X1\n2. B1\n   1. C2\n      1. D3\n3. E1\n",
+			"1. X1\n2. B1\n   1. C2\n      1. D3\n3. E1\n",
+		},
+		{
+			"Mixed list",
+			[]Option{},
+			"1. A1\n2. B1\n   - C2\n     1. D3\n     2. E3\n   - F2\n   - G2\n3. H1\n",
+			"1. A1\n2. B1\n   - C2\n     1. D3\n     2. E3\n   - F2\n   - G2\n3. H1\n",
+		},
 		// Block separators
 		{
 			"ATX heading block separator",

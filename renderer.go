@@ -3,6 +3,7 @@ package markdown
 
 import (
 	"bytes"
+	"fmt"
 	"io"
 
 	"github.com/yuin/goldmark/ast"
@@ -250,14 +251,26 @@ func (r *Renderer) renderHTMLBlock(node ast.Node, entering bool) ast.WalkStatus 
 func (r *Renderer) renderList(node ast.Node, entering bool) ast.WalkStatus {
 	if entering {
 		n := node.(*ast.List)
-		r.rc.listMarker = n.Marker
+		r.rc.lists = append(r.rc.lists, listContext{
+			list: n,
+			num:  n.Start,
+		})
+	} else {
+		r.rc.lists = r.rc.lists[:len(r.rc.lists)-1]
 	}
 	return ast.WalkContinue
 }
 
 func (r *Renderer) renderListItem(node ast.Node, entering bool) ast.WalkStatus {
 	if entering {
-		itemPrefix := []byte{r.rc.listMarker, ' '}
+		var itemPrefix []byte
+		l := r.rc.lists[len(r.rc.lists)-1]
+
+		if l.list.IsOrdered() {
+			itemPrefix = append(itemPrefix, []byte(fmt.Sprint(l.num))...)
+			r.rc.lists[len(r.rc.lists)-1].num += 1
+		}
+		itemPrefix = append(itemPrefix, l.list.Marker, ' ')
 		// Prefix the current line with the item prefix
 		r.rc.writer.PushPrefix(itemPrefix, 0, 0)
 		// Prefix subsequent lines with padding the same length as the item prefix
@@ -358,8 +371,13 @@ type renderContext struct {
 	writer *markdownWriter
 	// source is the markdown source
 	source []byte
-	// listMarker is the marker character used for the current list
-	listMarker byte
+	// listMarkers is the marker character used for the current list
+	lists []listContext
+}
+
+type listContext struct {
+	list *ast.List
+	num  int
 }
 
 // newRenderContext returns a new renderContext object
