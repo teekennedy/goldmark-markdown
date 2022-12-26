@@ -4,6 +4,8 @@ import (
 	"bytes"
 	"io"
 	"unicode"
+
+	"github.com/yuin/goldmark/util"
 )
 
 // Line delimiter
@@ -33,6 +35,8 @@ type markdownWriter struct {
 	err error
 }
 
+var _ util.BufWriter = &markdownWriter{}
+
 // newMarkdownWriter returns a new markdownWriter
 func newMarkdownWriter(w io.Writer, config *Config) *markdownWriter {
 	result := &markdownWriter{
@@ -55,7 +59,7 @@ func (m *markdownWriter) Reset(w io.Writer) {
 
 // WriteLine writes the given bytes as a finished line, regardless of trailing newline.
 func (m *markdownWriter) WriteLine(line []byte) (n int) {
-	n = m.Write(line)
+	n, _ = m.Write(line)
 	m.FlushLine()
 
 	return n
@@ -98,9 +102,9 @@ func (p *markdownWriter) PopPrefix() {
 
 // Write writes the given data to an internal buffer, then writes any complete lines to the
 // underlying writer.
-func (m *markdownWriter) Write(data []byte) (n int) {
+func (m *markdownWriter) Write(data []byte) (n int, err error) {
 	if m.err != nil {
-		return 0
+		return 0, m.err
 	}
 	// Writing to a bytes.Buffer always returns a nil error
 	n, _ = m.buf.Write(data)
@@ -123,15 +127,45 @@ func (m *markdownWriter) Write(data []byte) (n int) {
 		_, err := m.output.Write(prefixedLine.Bytes())
 		if err != nil {
 			m.err = err
-			return 0
+			return 0, m.err
 		}
 		m.line += 1
 		prefixedLine.Reset()
 	}
-	return n
+	return n, nil
 }
 
 // Err returns the last write error, or nil.
 func (m *markdownWriter) Err() error {
 	return m.err
+}
+
+// returns how many bytes are unused in the buffer.
+func (m *markdownWriter) Available() int {
+	return m.buf.Cap() - m.buf.Len()
+}
+
+func (m *markdownWriter) Buffered() int {
+	return m.buf.Len()
+}
+
+func (m *markdownWriter) Flush() error {
+	_, err := m.output.Write(m.buf.Bytes())
+	if err != nil {
+		return err
+	}
+	m.buf.Reset()
+	return nil
+}
+
+func (m *markdownWriter) WriteByte(c byte) error {
+	return m.buf.WriteByte(c)
+}
+
+func (m *markdownWriter) WriteRune(r rune) (size int, err error) {
+	return m.buf.WriteRune(r)
+}
+
+func (m *markdownWriter) WriteString(s string) (n int, err error) {
+	return m.buf.WriteString(s)
 }
