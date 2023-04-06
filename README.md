@@ -2,7 +2,7 @@
 
 [![GoDoc](https://godoc.org/github.com/teekennedy/goldmark-markdown?status.svg)](https://godoc.org/github.com/teekennedy/goldmark-markdown) ![Go Version](https://img.shields.io/github/go-mod/go-version/teekennedy/goldmark-markdown) [![latest](https://img.shields.io/github/v/tag/teekennedy/goldmark-markdown)](https://github.com/teekennedy/goldmark-markdown/tags) [![test](https://github.com/teekennedy/goldmark-markdown/actions/workflows/test.yml/badge.svg)](https://github.com/teekennedy/goldmark-markdown/actions/workflows/test.yml) [![Coverage Status](https://coveralls.io/repos/github/teekennedy/goldmark-markdown/badge.svg?branch=main)](https://coveralls.io/github/teekennedy/goldmark-markdown?branch=main)
 
-Goldmark-markdown ia a [goldmark] renderer that renders to markdown. It can be used directly as an
+Goldmark-markdown is a [goldmark] renderer that renders to markdown. It can be used directly as an
 auto-formatter for markdown source, or extended via goldmark's powerful [AST] transformers to
 programmatically transform markdown files.
 
