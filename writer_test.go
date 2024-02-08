@@ -7,7 +7,28 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
+
+func TestWrite(t *testing.T) {
+	buf := &bytes.Buffer{}
+	writer := newMarkdownWriter(buf, NewConfig())
+
+	available := writer.Available()
+	assert.Equal(t, 0, available)
+	assert.Equal(t, 0, writer.Buffered())
+
+	writer.WriteByte(byte('b'))
+	writer.WriteRune('r')
+	writer.WriteString("s")
+
+	assert.Less(t, available, writer.Available())
+	assert.Equal(t, 3, writer.Buffered())
+
+	err := writer.Flush()
+	require.NoError(t, err)
+	assert.Equal(t, "brs\n", buf.String())
+}
 
 // TestFlushLine tests that the writer will flush the current buffered line if non-empty.
 func TestFlushLine(t *testing.T) {
@@ -38,7 +59,7 @@ func TestEndLine(t *testing.T) {
 
 // TestWriterOutputs tests that the writer produces expected output in various scenarios.
 func TestWriterOutputs(t *testing.T) {
-	var testCases = []struct {
+	testCases := []struct {
 		name      string
 		writeFunc func(writer *markdownWriter)
 		expected  string
