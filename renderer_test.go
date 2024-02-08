@@ -9,6 +9,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/yuin/goldmark"
 	"github.com/yuin/goldmark/ast"
+	"github.com/yuin/goldmark/extension"
 	"github.com/yuin/goldmark/parser"
 	"github.com/yuin/goldmark/text"
 	"github.com/yuin/goldmark/util"
@@ -59,9 +60,26 @@ func TestRenderError(t *testing.T) {
 	assert.Equal(t, err, result)
 }
 
+// TestCustomRenderers tests that the renderer uses any config.NodeRenderers defined by the user
+func TestCustomRenderers(t *testing.T) {
+	md := goldmark.New(
+		goldmark.WithRenderer(NewRenderer()),
+		goldmark.WithParserOptions(parser.WithASTTransformers(util.Prioritized(&transformer, 0))),
+	)
+	buf := bytes.Buffer{}
+	source := `# My Tasks
+- [x] Add support for custom renderers
+	`
+
+	extension.TaskList.Extend(md)
+	err := md.Convert([]byte(source), &buf)
+	assert.NoError(t, err)
+	t.Log(buf.String())
+}
+
 // TestRenderedOutput tests that the renderer produces the expected output for all test cases
 func TestRenderedOutput(t *testing.T) {
-	var testCases = []struct {
+	testCases := []struct {
 		name     string
 		options  []Option
 		source   string

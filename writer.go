@@ -140,21 +140,19 @@ func (m *markdownWriter) Err() error {
 	return m.err
 }
 
-// returns how many bytes are unused in the buffer.
+// Available returns how many bytes are unused in the buffer.
 func (m *markdownWriter) Available() int {
-	return m.buf.Cap() - m.buf.Len()
+	return m.buf.Available()
 }
 
+// Buffered returns the number of bytes that have been written into the current buffer.
 func (m *markdownWriter) Buffered() int {
 	return m.buf.Len()
 }
 
+// Flush flushes the contents of the buffer to the output.
 func (m *markdownWriter) Flush() error {
-	_, err := m.output.Write(m.buf.Bytes())
-	if err != nil {
-		return err
-	}
-	m.buf.Reset()
+	m.FlushLine()
 	return nil
 }
 

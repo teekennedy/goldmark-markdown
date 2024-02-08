@@ -105,6 +105,7 @@ func (r *Renderer) Render(w io.Writer, source []byte, n ast.Node) error {
 	})
 }
 
+// transform wraps a renderer.NodeRendererFunc to match the nodeRenderer function signature
 func (r *Renderer) transform(fn renderer.NodeRendererFunc) nodeRenderer {
 	return func(n ast.Node, entering bool) ast.WalkStatus {
 		status, _ := fn(r.rc.writer, r.rc.source, n, entering)
