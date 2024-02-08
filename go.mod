@@ -1,6 +1,6 @@
 module github.com/teekennedy/goldmark-markdown
 
-go 1.18
+go 1.21
 
 require (
 	github.com/rhysd/go-fakeio v1.0.0
