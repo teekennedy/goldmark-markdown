@@ -146,10 +146,10 @@ func (r *Renderer) renderBlockSeparator(node ast.Node, entering bool) ast.WalkSt
 func (r *Renderer) renderAutoLink(node ast.Node, entering bool) ast.WalkStatus {
 	n := node.(*ast.AutoLink)
 	if entering {
-		r.rc.writer.Write([]byte("<"))
-		r.rc.writer.Write(n.URL(r.rc.source))
+		r.rc.writer.WriteBytes([]byte("<"))
+		r.rc.writer.WriteBytes(n.URL(r.rc.source))
 	} else {
-		r.rc.writer.Write([]byte(">"))
+		r.rc.writer.WriteBytes([]byte(">"))
 	}
 	return ast.WalkContinue
 }
@@ -182,15 +182,15 @@ func (r *Renderer) renderHeading(node ast.Node, entering bool) ast.WalkStatus {
 
 func (r *Renderer) renderATXHeading(node *ast.Heading, entering bool) ast.WalkStatus {
 	if entering {
-		r.rc.writer.Write(bytes.Repeat([]byte("#"), node.Level))
+		r.rc.writer.WriteBytes(bytes.Repeat([]byte("#"), node.Level))
 		// Only print space after heading if non-empty
 		if node.HasChildren() {
-			r.rc.writer.Write([]byte(" "))
+			r.rc.writer.WriteBytes([]byte(" "))
 		}
 	} else {
 		if r.config.HeadingStyle == HeadingStyleATXSurround {
-			r.rc.writer.Write([]byte(" "))
-			r.rc.writer.Write(bytes.Repeat([]byte("#"), node.Level))
+			r.rc.writer.WriteBytes([]byte(" "))
+			r.rc.writer.WriteBytes(bytes.Repeat([]byte("#"), node.Level))
 		}
 	}
 	return ast.WalkContinue
@@ -213,8 +213,8 @@ func (r *Renderer) renderSetextHeading(node *ast.Heading, entering bool) ast.Wal
 			}
 		}
 	}
-	r.rc.writer.Write([]byte("\n"))
-	r.rc.writer.Write(bytes.Repeat(underlineChar, underlineWidth))
+	r.rc.writer.WriteBytes([]byte("\n"))
+	r.rc.writer.WriteBytes(bytes.Repeat(underlineChar, underlineWidth))
 	return ast.WalkContinue
 }
 
@@ -228,7 +228,7 @@ func (r *Renderer) renderThematicBreak(node ast.Node, entering bool) ast.WalkSta
 		} else {
 			breakLen = int(r.config.ThematicBreakLength)
 		}
-		r.rc.writer.Write(bytes.Repeat(breakChar, breakLen))
+		r.rc.writer.WriteBytes(bytes.Repeat(breakChar, breakLen))
 	}
 	return ast.WalkContinue
 }
@@ -245,10 +245,10 @@ func (r *Renderer) renderCodeBlock(node ast.Node, entering bool) ast.WalkStatus 
 
 func (r *Renderer) renderFencedCodeBlock(node ast.Node, entering bool) ast.WalkStatus {
 	n := node.(*ast.FencedCodeBlock)
-	r.rc.writer.Write([]byte("```"))
+	r.rc.writer.WriteBytes([]byte("```"))
 	if entering {
 		if info := n.Info; info != nil {
-			r.rc.writer.Write(info.Text(r.rc.source))
+			r.rc.writer.WriteBytes(info.Text(r.rc.source))
 		}
 		r.rc.writer.FlushLine()
 		r.renderLines(node, entering)
@@ -315,7 +315,7 @@ func (r *Renderer) renderText(node ast.Node, entering bool) ast.WalkStatus {
 	if entering {
 		text := n.Text(r.rc.source)
 
-		r.rc.writer.Write(text)
+		r.rc.writer.WriteBytes(text)
 		if n.SoftLineBreak() {
 			r.rc.writer.EndLine()
 		}
@@ -327,7 +327,7 @@ func (r *Renderer) renderSegments(segments *text.Segments, asLines bool) {
 	for i := 0; i < segments.Len(); i++ {
 		segment := segments.At(i)
 		value := segment.Value(r.rc.source)
-		r.rc.writer.Write(value)
+		r.rc.writer.WriteBytes(value)
 		if asLines {
 			r.rc.writer.FlushLine()
 		}
@@ -350,32 +350,32 @@ func (r *Renderer) renderLink(node ast.Node, entering bool) ast.WalkStatus {
 func (r *Renderer) renderImage(node ast.Node, entering bool) ast.WalkStatus {
 	n := node.(*ast.Image)
 	if entering {
-		r.rc.writer.Write([]byte("!"))
+		r.rc.writer.WriteBytes([]byte("!"))
 	}
 	return r.renderLinkCommon(n.Title, n.Destination, entering)
 }
 
 func (r *Renderer) renderLinkCommon(title, destination []byte, entering bool) ast.WalkStatus {
 	if entering {
-		r.rc.writer.Write([]byte("["))
+		r.rc.writer.WriteBytes([]byte("["))
 	} else {
-		r.rc.writer.Write([]byte("]("))
-		r.rc.writer.Write(destination)
+		r.rc.writer.WriteBytes([]byte("]("))
+		r.rc.writer.WriteBytes(destination)
 		if len(title) > 0 {
-			r.rc.writer.Write([]byte(" \""))
-			r.rc.writer.Write(title)
-			r.rc.writer.Write([]byte("\""))
+			r.rc.writer.WriteBytes([]byte(" \""))
+			r.rc.writer.WriteBytes(title)
+			r.rc.writer.WriteBytes([]byte("\""))
 		}
-		r.rc.writer.Write([]byte(")"))
+		r.rc.writer.WriteBytes([]byte(")"))
 	}
 	return ast.WalkContinue
 }
 
 func (r *Renderer) renderCodeSpan(node ast.Node, entering bool) ast.WalkStatus {
 	if bytes.Count(node.Text(r.rc.source), []byte("`"))%2 != 0 {
-		r.rc.writer.Write([]byte("``"))
+		r.rc.writer.WriteBytes([]byte("``"))
 	} else {
-		r.rc.writer.Write([]byte("`"))
+		r.rc.writer.WriteBytes([]byte("`"))
 	}
 
 	return ast.WalkContinue
@@ -383,7 +383,7 @@ func (r *Renderer) renderCodeSpan(node ast.Node, entering bool) ast.WalkStatus {
 
 func (r *Renderer) renderEmphasis(node ast.Node, entering bool) ast.WalkStatus {
 	n := node.(*ast.Emphasis)
-	r.rc.writer.Write(bytes.Repeat([]byte{'*'}, n.Level))
+	r.rc.writer.WriteBytes(bytes.Repeat([]byte{'*'}, n.Level))
 	return ast.WalkContinue
 }
 

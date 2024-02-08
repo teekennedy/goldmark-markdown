@@ -18,16 +18,21 @@ func TestWrite(t *testing.T) {
 	assert.Equal(t, 0, available)
 	assert.Equal(t, 0, writer.Buffered())
 
-	writer.WriteByte(byte('b'))
-	writer.WriteRune('r')
-	writer.WriteString("s")
+	err := writer.WriteByte(byte('b'))
+	require.NoError(t, err)
+	_, err = writer.Write([]byte("y"))
+	require.NoError(t, err)
+	_, err = writer.WriteRune('t')
+	require.NoError(t, err)
+	_, err = writer.WriteString("e")
+	require.NoError(t, err)
 
 	assert.Less(t, available, writer.Available())
-	assert.Equal(t, 3, writer.Buffered())
+	assert.Equal(t, 4, writer.Buffered())
 
-	err := writer.Flush()
+	err = writer.Flush()
 	require.NoError(t, err)
-	assert.Equal(t, "brs\n", buf.String())
+	assert.Equal(t, "byte\n", buf.String())
 }
 
 // TestFlushLine tests that the writer will flush the current buffered line if non-empty.
@@ -38,7 +43,7 @@ func TestFlushLine(t *testing.T) {
 
 	writer.FlushLine()
 	assert.Equal("", buf.String(), "FlushLine() on an empty buffer should not produce output")
-	writer.Write([]byte("foobar"))
+	writer.WriteBytes([]byte("foobar"))
 	writer.FlushLine()
 	assert.Equal("foobar\n", buf.String(), "FlushLine() on partial line should produce output.")
 }
@@ -51,7 +56,7 @@ func TestEndLine(t *testing.T) {
 
 	writer.EndLine()
 	assert.Equal("\n", buf.String(), "EndLine() should write newline to output")
-	writer.Write([]byte("A line"))
+	writer.WriteBytes([]byte("A line"))
 	assert.Equal("\n", buf.String(), "Writing a partial line should not produce output.")
 	writer.FlushLine()
 	assert.Equal("\nA line\n", buf.String(), "FlushLine() on partial line should produce output.")
@@ -100,7 +105,7 @@ func TestWriterOutputs(t *testing.T) {
 			func(writer *markdownWriter) {
 				lines := []string{"Consider me", "As one who loved poetry", "And persimmons."}
 				writer.PushPrefix([]byte("  "), 1)
-				writer.Write([]byte("- "))
+				writer.WriteBytes([]byte("- "))
 				for _, line := range lines {
 					writer.WriteLine([]byte(line))
 				}

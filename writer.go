@@ -75,7 +75,7 @@ func (m *markdownWriter) FlushLine() {
 
 // EndLine ends the current line, flushing the line buffer regardless of whether it's empty.
 func (m *markdownWriter) EndLine() {
-	m.Write([]byte{lineDelim})
+	_, _ = m.Write([]byte{lineDelim})
 }
 
 // PushPrefix adds the given bytes as a prefix for lines written to the output. The prefix
@@ -103,8 +103,12 @@ func (p *markdownWriter) PopPrefix() {
 // Write writes the given data to an internal buffer, then writes any complete lines to the
 // underlying writer.
 func (m *markdownWriter) Write(data []byte) (n int, err error) {
+	return m.WriteBytes(data), m.err
+}
+
+func (m *markdownWriter) WriteBytes(data []byte) (n int) {
 	if m.err != nil {
-		return 0, m.err
+		return 0
 	}
 	// Writing to a bytes.Buffer always returns a nil error
 	n, _ = m.buf.Write(data)
@@ -127,12 +131,12 @@ func (m *markdownWriter) Write(data []byte) (n int, err error) {
 		_, err := m.output.Write(prefixedLine.Bytes())
 		if err != nil {
 			m.err = err
-			return 0, m.err
+			return 0
 		}
 		m.line += 1
 		prefixedLine.Reset()
 	}
-	return n, nil
+	return n
 }
 
 // Err returns the last write error, or nil.
