@@ -222,12 +222,7 @@ func (r *Renderer) renderThematicBreak(node ast.Node, entering bool) ast.WalkSta
 	if entering {
 		breakChars := []byte{'-', '*', '_'}
 		breakChar := breakChars[r.config.ThematicBreakStyle : r.config.ThematicBreakStyle+1]
-		var breakLen int
-		if r.config.ThematicBreakLength < ThematicBreakLengthMinimum {
-			breakLen = int(ThematicBreakLengthMinimum)
-		} else {
-			breakLen = int(r.config.ThematicBreakLength)
-		}
+		breakLen := int(max(r.config.ThematicBreakLength, ThematicBreakLengthMinimum))
 		r.rc.writer.WriteBytes(bytes.Repeat(breakChar, breakLen))
 	}
 	return ast.WalkContinue
@@ -294,7 +289,9 @@ func (r *Renderer) renderListItem(node ast.Node, entering bool) ast.WalkStatus {
 		// Prefix the current line with the item prefix
 		r.rc.writer.PushPrefix(itemPrefix, 0, 0)
 		// Prefix subsequent lines with padding the same length as the item prefix
-		r.rc.writer.PushPrefix(bytes.Repeat([]byte(" "), len(itemPrefix)), 1)
+		indentLen := int(max(r.config.SubListLength, SubListLengthMinimum))
+		indent := bytes.Repeat([]byte{' '}, indentLen)
+		r.rc.writer.PushPrefix(bytes.Repeat(indent, len(itemPrefix)), 1)
 	} else {
 		r.rc.writer.PopPrefix()
 		r.rc.writer.PopPrefix()
