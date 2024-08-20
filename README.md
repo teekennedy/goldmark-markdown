@@ -45,6 +45,7 @@ the renderer.
 | WithHeadingStyle | markdown.HeadingStyle | Render markdown headings as ATX (`#`-based), Setext (underlined with `===` or `---`), or variants thereof. |
 | WithThematicBreakStyle | markdown.ThematicBreakStyle | Render thematic breaks with `-`, `*`, or `_`. |
 | WithThematicBreakLength | markdown.ThematicBreakLength | Number of characters to use in a thematic break (minimum 3). |
+| WithSubListLength | markdown.SubListLength | Number of characters to use in a sub list indentation (minimum 1). |
 
 ## As a markdown transformer
 

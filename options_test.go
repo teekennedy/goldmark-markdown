@@ -26,6 +26,7 @@ func TestRendererOptions(t *testing.T) {
 				WithHeadingStyle(HeadingStyleATX),
 				WithThematicBreakStyle(ThematicBreakStyleDashed),
 				WithThematicBreakLength(ThematicBreakLengthMinimum),
+				WithSubListLength(SubListLengthMinimum),
 			},
 			NewConfig(),
 		},

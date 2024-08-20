@@ -6,10 +6,11 @@ import (
 
 // Config struct holds configurations for the markdown based renderer.
 type Config struct {
-	IndentStyle         IndentStyle
-	HeadingStyle        HeadingStyle
-	ThematicBreakStyle  ThematicBreakStyle
-	ThematicBreakLength ThematicBreakLength
+	IndentStyle
+	HeadingStyle
+	ThematicBreakStyle
+	ThematicBreakLength
+	SubListLength
 }
 
 // NewConfig returns a new Config with defaults and the given options.
@@ -19,6 +20,7 @@ func NewConfig(options ...Option) *Config {
 		HeadingStyle:        HeadingStyle(HeadingStyleATX),
 		ThematicBreakStyle:  ThematicBreakStyle(ThematicBreakStyleDashed),
 		ThematicBreakLength: ThematicBreakLength(ThematicBreakLengthMinimum),
+		SubListLength:       SubListLength(SubListLengthMinimum),
 	}
 	for _, opt := range options {
 		opt.SetMarkdownOption(c)
@@ -37,6 +39,8 @@ func (c *Config) SetOption(name renderer.OptionName, value interface{}) {
 		c.ThematicBreakStyle = value.(ThematicBreakStyle)
 	case optThematicBreakLength:
 		c.ThematicBreakLength = value.(ThematicBreakLength)
+	case optSubListLength:
+		c.SubListLength = value.(SubListLength)
 	}
 }
 
@@ -226,4 +230,42 @@ func WithThematicBreakLength(style ThematicBreakLength) interface {
 	Option
 } {
 	return &withThematicBreakLength{style}
+}
+
+// ============================================================================
+// SubListLength Option
+// ============================================================================
+
+// optSubListLength is an option name used in WithSubListLength
+const optSubListLength renderer.OptionName = "SubListLength"
+
+// SubListLength configures the character length of sublist indentation
+type SubListLength int
+
+const (
+	// SubListLengthMinimum is the minimum length of a sublist length. This is the default.
+	// Any lengths less than this minimum are converted to the minimum.
+	// Ex: ---
+	SubListLengthMinimum = 1
+)
+
+type withSubListLength struct {
+	value SubListLength
+}
+
+func (o *withSubListLength) SetConfig(c *renderer.Config) {
+	c.Options[optSubListLength] = o.value
+}
+
+// SetMarkdownOption implements renderer.Option
+func (o *withSubListLength) SetMarkdownOption(c *Config) {
+	c.SubListLength = o.value
+}
+
+// WithSubListLength is a functional option that sets the length of sub lists indentation.
+func WithSubListLength(style SubListLength) interface {
+	renderer.Option
+	Option
+} {
+	return &withSubListLength{style}
 }
