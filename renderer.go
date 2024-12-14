@@ -5,7 +5,9 @@ import (
 	"bytes"
 	"fmt"
 	"io"
+	"slices"
 	"sync"
+	"unicode"
 
 	"github.com/yuin/goldmark/ast"
 	"github.com/yuin/goldmark/renderer"
@@ -243,7 +245,7 @@ func (r *Renderer) renderFencedCodeBlock(node ast.Node, entering bool) ast.WalkS
 	r.rc.writer.WriteBytes([]byte("```"))
 	if entering {
 		if info := n.Info; info != nil {
-			r.rc.writer.WriteBytes(info.Text(r.rc.source))
+			r.rc.writer.WriteBytes(info.Value(r.rc.source))
 		}
 		r.rc.writer.FlushLine()
 		r.renderLines(node, entering)
@@ -310,7 +312,7 @@ func (r *Renderer) renderRawHTML(node ast.Node, entering bool) ast.WalkStatus {
 func (r *Renderer) renderText(node ast.Node, entering bool) ast.WalkStatus {
 	n := node.(*ast.Text)
 	if entering {
-		text := n.Text(r.rc.source)
+		text := n.Value(r.rc.source)
 
 		r.rc.writer.WriteBytes(text)
 		if n.SoftLineBreak() {
@@ -369,10 +371,64 @@ func (r *Renderer) renderLinkCommon(title, destination []byte, entering bool) as
 }
 
 func (r *Renderer) renderCodeSpan(node ast.Node, entering bool) ast.WalkStatus {
-	if bytes.Count(node.Text(r.rc.source), []byte("`"))%2 != 0 {
-		r.rc.writer.WriteBytes([]byte("``"))
+	if entering {
+		// get contents of codespan
+		var contentBytes []byte
+		for c := node.FirstChild(); c != nil; c = c.NextSibling() {
+			text := c.(*ast.Text).Segment
+			contentBytes = append(contentBytes, text.Value(r.rc.source)...)
+		}
+		contents := string(contentBytes)
+
+		//
+		var beginsWithSpace bool
+		var endsWithSpace bool
+		var beginsWithBackTick bool
+		var endsWithBackTick bool
+		isOnlySpace := true
+		backtickLengths := []int{}
+		count := 0
+		for i, c := range contents {
+			if i == 0 {
+				beginsWithSpace = unicode.IsSpace(c)
+				beginsWithBackTick = c == '`'
+			} else if i == len(contents)-1 {
+				endsWithSpace = unicode.IsSpace(c)
+				endsWithBackTick = c == '`'
+			}
+			if !unicode.IsSpace(c) {
+				isOnlySpace = false
+			}
+			if c == '`' {
+				count++
+			} else if count > 0 {
+				backtickLengths = append(backtickLengths, count)
+				count = 0
+			}
+		}
+		if count > 0 {
+			backtickLengths = append(backtickLengths, count)
+		}
+
+		// Surround the codespan with the minimum number of backticks required to contain the span.
+		for i := 1; i <= len(contentBytes); i++ {
+			if !slices.Contains(backtickLengths, i) {
+				r.rc.codeSpanContext.backtickLength = i
+				break
+			}
+		}
+		r.rc.writer.WriteBytes(bytes.Repeat([]byte("`"), r.rc.codeSpanContext.backtickLength))
+
+		// Check if the code span needs to be padded with spaces
+		if beginsWithSpace && endsWithSpace && !isOnlySpace || beginsWithBackTick || endsWithBackTick {
+			r.rc.codeSpanContext.padSpace = true
+			r.rc.writer.WriteBytes([]byte(" "))
+		}
 	} else {
-		r.rc.writer.WriteBytes([]byte("`"))
+		if r.rc.codeSpanContext.padSpace {
+			r.rc.writer.WriteBytes([]byte(" "))
+		}
+		r.rc.writer.WriteBytes(bytes.Repeat([]byte("`"), r.rc.codeSpanContext.backtickLength))
 	}
 
 	return ast.WalkContinue
@@ -389,12 +445,21 @@ type renderContext struct {
 	// source is the markdown source
 	source []byte
 	// listMarkers is the marker character used for the current list
-	lists []listContext
+	lists           []listContext
+	codeSpanContext codeSpanContext
 }
 
 type listContext struct {
 	list *ast.List
 	num  int
+}
+
+// codeSpanContext holds state about how the current codespan should be rendererd.
+type codeSpanContext struct {
+	// number of backticks to use
+	backtickLength int
+	// whether to surround the codespan with spaces
+	padSpace bool
 }
 
 // newRenderContext returns a new renderContext object
