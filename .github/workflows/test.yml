@@ -9,7 +9,7 @@ on:
       - main
 
 env:
-  go_version: 1.21.x
+  go_version: 1.23.x
 
 jobs:
   lint:

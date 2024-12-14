@@ -174,7 +174,7 @@ func (r *Renderer) renderHeading(node ast.Node, entering bool) ast.WalkStatus {
 		return r.renderSetextHeading(n, entering)
 	}
 	// Otherwise it's up to the configuration
-	if r.config.HeadingStyle.IsSetext() {
+	if r.config.IsSetext() {
 		return r.renderSetextHeading(n, entering)
 	}
 	return r.renderATXHeading(n, entering)
@@ -230,7 +230,7 @@ func (r *Renderer) renderThematicBreak(node ast.Node, entering bool) ast.WalkSta
 
 func (r *Renderer) renderCodeBlock(node ast.Node, entering bool) ast.WalkStatus {
 	if entering {
-		r.rc.writer.PushPrefix(r.config.IndentStyle.Bytes())
+		r.rc.writer.PushPrefix(r.config.Bytes())
 		r.renderLines(node, entering)
 	} else {
 		r.rc.writer.PopPrefix()

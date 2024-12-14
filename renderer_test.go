@@ -15,13 +15,7 @@ import (
 	"github.com/yuin/goldmark/util"
 )
 
-var (
-	transformer = testHelperASTTransformer{}
-	md          = goldmark.New(
-		goldmark.WithRenderer(NewRenderer()),
-		goldmark.WithParserOptions(parser.WithASTTransformers(util.Prioritized(&transformer, 0))),
-	)
-)
+var transformer = testHelperASTTransformer{}
 
 // testHelperASTTransformer is a goldmark AST transformer that helps with debugging failed tests.
 type testHelperASTTransformer struct {
@@ -79,6 +73,10 @@ func TestCustomRenderers(t *testing.T) {
 
 // TestRenderedOutput tests that the renderer produces the expected output for all test cases
 func TestRenderedOutput(t *testing.T) {
+	md := goldmark.New(
+		goldmark.WithRenderer(NewRenderer()),
+		goldmark.WithParserOptions(parser.WithASTTransformers(util.Prioritized(&transformer, 0))),
+	)
 	testCases := []struct {
 		name     string
 		options  []Option
