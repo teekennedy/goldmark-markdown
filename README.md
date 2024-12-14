@@ -39,13 +39,13 @@ log.Print(buf.String()) // # My Document Title
 You can control the style of various markdown elements via functional options that are passed to
 the renderer.
 
-| Functional Option | Type | Description |
-| ----------------- | ---- | ----------- |
-| WithIndentStyle | markdown.IndentStyle | Indent nested blocks with spaces or tabs. |
-| WithHeadingStyle | markdown.HeadingStyle | Render markdown headings as ATX (`#`-based), Setext (underlined with `===` or `---`), or variants thereof. |
-| WithThematicBreakStyle | markdown.ThematicBreakStyle | Render thematic breaks with `-`, `*`, or `_`. |
-| WithThematicBreakLength | markdown.ThematicBreakLength | Number of characters to use in a thematic break (minimum 3). |
-| WithSubListLength | markdown.SubListLength | Number of characters to use in a sub list indentation (minimum 1). |
+| Functional Option       | Type                         | Description                                                                                                |
+| ----------------------- | ---------------------------- | ---------------------------------------------------------------------------------------------------------- |
+| WithIndentStyle         | markdown.IndentStyle         | Indent nested blocks with spaces or tabs.                                                                  |
+| WithHeadingStyle        | markdown.HeadingStyle        | Render markdown headings as ATX (`#`-based), Setext (underlined with `===` or `---`), or variants thereof. |
+| WithThematicBreakStyle  | markdown.ThematicBreakStyle  | Render thematic breaks with `-`, `*`, or `_`.                                                              |
+| WithThematicBreakLength | markdown.ThematicBreakLength | Number of characters to use in a thematic break (minimum 3).                                               |
+| WithNestedListLength    | markdown.NestedListLength    | Number of characters to use in a nested list indentation (minimum 1).                                      |
 
 ## As a markdown transformer
 
@@ -57,7 +57,6 @@ For example, you can scan the AST for text that matches a pattern for an externa
 transform that text into a link to the resource, similar to GitHub's [custom autolinks] feature.
 Start by adding a struct that holds a regexp pattern to scan text for and a URL replacement for the
 pattern:
-
 
 ```go
 // RegexpLinkTransformer is an AST Transformer that transforms markdown text that matches a regex

@@ -9,7 +9,7 @@ import (
 
 // TestRendererOptions tests the methods for setting configuration options on the renderer
 func TestRendererOptions(t *testing.T) {
-	var cases = []struct {
+	cases := []struct {
 		name     string
 		options  []Option
 		expected *Config
@@ -26,7 +26,7 @@ func TestRendererOptions(t *testing.T) {
 				WithHeadingStyle(HeadingStyleATX),
 				WithThematicBreakStyle(ThematicBreakStyleDashed),
 				WithThematicBreakLength(ThematicBreakLengthMinimum),
-				WithSubListLength(SubListLengthMinimum),
+				WithNestedListLength(NestedListLengthMinimum),
 			},
 			NewConfig(),
 		},

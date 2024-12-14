@@ -480,8 +480,8 @@ func TestRenderedOutput(t *testing.T) {
 			"1. A1\n2. B1\n   - C2\n     1. D3\n     2. E3\n   - F2\n   - G2\n3. H1\n",
 		},
 		{
-			"Sub list length",
-			[]Option{WithSubListLength(2)},
+			"Nested list length",
+			[]Option{WithNestedListLength(2)},
 			"1. A1\n2. B1\n   - C2\n     1. D3\n     2. E3\n   - F2\n   - G2\n3. H1\n",
 			"1. A1\n2. B1\n      - C2\n          1. D3\n          2. E3\n      - F2\n      - G2\n3. H1\n",
 		},

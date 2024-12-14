@@ -289,7 +289,7 @@ func (r *Renderer) renderListItem(node ast.Node, entering bool) ast.WalkStatus {
 		// Prefix the current line with the item prefix
 		r.rc.writer.PushPrefix(itemPrefix, 0, 0)
 		// Prefix subsequent lines with padding the same length as the item prefix
-		indentLen := int(max(r.config.SubListLength, SubListLengthMinimum))
+		indentLen := int(max(r.config.NestedListLength, NestedListLengthMinimum))
 		indent := bytes.Repeat([]byte{' '}, indentLen)
 		r.rc.writer.PushPrefix(bytes.Repeat(indent, len(itemPrefix)), 1)
 	} else {

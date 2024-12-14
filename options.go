@@ -10,7 +10,7 @@ type Config struct {
 	HeadingStyle
 	ThematicBreakStyle
 	ThematicBreakLength
-	SubListLength
+	NestedListLength
 }
 
 // NewConfig returns a new Config with defaults and the given options.
@@ -20,7 +20,7 @@ func NewConfig(options ...Option) *Config {
 		HeadingStyle:        HeadingStyle(HeadingStyleATX),
 		ThematicBreakStyle:  ThematicBreakStyle(ThematicBreakStyleDashed),
 		ThematicBreakLength: ThematicBreakLength(ThematicBreakLengthMinimum),
-		SubListLength:       SubListLength(SubListLengthMinimum),
+		NestedListLength:    NestedListLength(NestedListLengthMinimum),
 	}
 	for _, opt := range options {
 		opt.SetMarkdownOption(c)
@@ -39,8 +39,8 @@ func (c *Config) SetOption(name renderer.OptionName, value interface{}) {
 		c.ThematicBreakStyle = value.(ThematicBreakStyle)
 	case optThematicBreakLength:
 		c.ThematicBreakLength = value.(ThematicBreakLength)
-	case optSubListLength:
-		c.SubListLength = value.(SubListLength)
+	case optNestedListLength:
+		c.NestedListLength = value.(NestedListLength)
 	}
 }
 
@@ -233,39 +233,39 @@ func WithThematicBreakLength(style ThematicBreakLength) interface {
 }
 
 // ============================================================================
-// SubListLength Option
+// NestedListLength Option
 // ============================================================================
 
-// optSubListLength is an option name used in WithSubListLength
-const optSubListLength renderer.OptionName = "SubListLength"
+// optNestedListLength is an option name used in WithNestedListLength
+const optNestedListLength renderer.OptionName = "NestedListLength"
 
-// SubListLength configures the character length of sublist indentation
-type SubListLength int
+// NestedListLength configures the character length of nested list indentation
+type NestedListLength int
 
 const (
-	// SubListLengthMinimum is the minimum length of a sublist length. This is the default.
+	// NestedListLengthMinimum is the minimum length of a nested list indentation. This is the default.
 	// Any lengths less than this minimum are converted to the minimum.
 	// Ex: ---
-	SubListLengthMinimum = 1
+	NestedListLengthMinimum = 1
 )
 
-type withSubListLength struct {
-	value SubListLength
+type withNestedListLength struct {
+	value NestedListLength
 }
 
-func (o *withSubListLength) SetConfig(c *renderer.Config) {
-	c.Options[optSubListLength] = o.value
+func (o *withNestedListLength) SetConfig(c *renderer.Config) {
+	c.Options[optNestedListLength] = o.value
 }
 
 // SetMarkdownOption implements renderer.Option
-func (o *withSubListLength) SetMarkdownOption(c *Config) {
-	c.SubListLength = o.value
+func (o *withNestedListLength) SetMarkdownOption(c *Config) {
+	c.NestedListLength = o.value
 }
 
-// WithSubListLength is a functional option that sets the length of sub lists indentation.
-func WithSubListLength(style SubListLength) interface {
+// WithNestedListLength is a functional option that sets the length of nested list indentation.
+func WithNestedListLength(style NestedListLength) interface {
 	renderer.Option
 	Option
 } {
-	return &withSubListLength{style}
+	return &withNestedListLength{style}
 }
