@@ -316,6 +316,9 @@ func (r *Renderer) renderText(node ast.Node, entering bool) ast.WalkStatus {
 		r.rc.writer.WriteBytes(text)
 		if n.SoftLineBreak() {
 			r.rc.writer.EndLine()
+		} else if n.HardLineBreak() {
+			_, _ = r.rc.writer.WriteRune('\\')
+			r.rc.writer.EndLine()
 		}
 	}
 	return ast.WalkContinue

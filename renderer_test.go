@@ -604,6 +604,24 @@ func TestRenderedOutput(t *testing.T) {
 			"![image](/uri \"title\")",
 			"![image](/uri \"title\")\n",
 		},
+		{
+			"Hard line break",
+			nil,
+			`- List item 1\
+  newline\
+  newline2
+
+  newpara
+- List item 2
+`,
+			`- List item 1\
+  newline\
+  newline2
+
+  newpara
+- List item 2
+`,
+		},
 	}
 
 	for _, tc := range testCases {
