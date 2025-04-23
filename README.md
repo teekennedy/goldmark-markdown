@@ -18,10 +18,10 @@ whitespace, and enforces consistent style for things like indentation, headings,
 ```go
 // Create goldmark converter with markdown renderer object
 // Can pass functional Options as arguments. This example converts headings to ATX style.
-renderer := markdown.NewRenderer(markdown.WithHeadingStyle(markdown.HeadingStyleATX))
-md := goldmark.New(goldmark.WithRenderer(renderer))
+renderer := markdown.NewExtension(markdown.WithHeadingStyle(markdown.HeadingStyleATX))
+md := goldmark.New(goldmark.WithExtensions(renderer))
 
-// "Convert" markdown to formatted markdown
+// Convert markdown to formatted markdown
 source := `
 My Document Title
 =================
@@ -39,13 +39,14 @@ log.Print(buf.String()) // # My Document Title
 You can control the style of various markdown elements via functional options that are passed to
 the renderer.
 
-| Functional Option       | Type                         | Description                                                                                                |
-| ----------------------- | ---------------------------- | ---------------------------------------------------------------------------------------------------------- |
-| WithIndentStyle         | markdown.IndentStyle         | Indent nested blocks with spaces or tabs.                                                                  |
-| WithHeadingStyle        | markdown.HeadingStyle        | Render markdown headings as ATX (`#`-based), Setext (underlined with `===` or `---`), or variants thereof. |
-| WithThematicBreakStyle  | markdown.ThematicBreakStyle  | Render thematic breaks with `-`, `*`, or `_`.                                                              |
-| WithThematicBreakLength | markdown.ThematicBreakLength | Number of characters to use in a thematic break (minimum 3).                                               |
-| WithNestedListLength    | markdown.NestedListLength    | Number of characters to use in a nested list indentation (minimum 1).                                      |
+| Functional Option            | Type                              | Description                                                                                                                                                                  |
+| ---------------------------- | --------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| WithIndentStyle              | markdown.IndentStyle              | Indent nested blocks with spaces or tabs.                                                                                                                                    |
+| WithHeadingStyle             | markdown.HeadingStyle             | Render markdown headings as ATX (`#`-based), Setext (underlined with `===` or `---`), or variants thereof.                                                                   |
+| WithThematicBreakStyle       | markdown.ThematicBreakStyle       | Render thematic breaks with `-`, `*`, or `_`.                                                                                                                                |
+| WithThematicBreakLength      | markdown.ThematicBreakLength      | Number of characters to use in a thematic break (minimum 3).                                                                                                                 |
+| WithNestedListLength         | markdown.NestedListLength         | Number of characters to use in a nested list indentation (minimum 1).                                                                                                        |
+| WithTypographerSubstitutions | markdown.TypographerSubstitutions | Whether characters should be substituted by the typographer extension. This setting has no effect unless the typographer extension is added to the goldmark.Markdown object. |
 
 ## As a markdown transformer
 
@@ -162,7 +163,7 @@ transformer := RegexpLinkTransformer{
 prioritizedTransformer := util.Prioritized(&transformer, 0)
 // Setup goldmark with the markdown renderer and our transformer
 gm := goldmark.New(
-  goldmark.WithRenderer(markdown.NewRenderer()),
+  goldmark.WithExtensions(markdown.NewExtension()),
   goldmark.WithParserOptions(parser.WithASTTransformers(prioritizedTransformer)),
 )
 ```

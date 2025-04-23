@@ -77,7 +77,6 @@ func (t *RegexpLinkTransformer) Transform(node *ast.Document, reader text.Reader
 
 		return ast.WalkContinue, nil
 	})
-
 	if err != nil {
 		log.Fatal("Error encountered while transforming AST:", err)
 	}
@@ -104,7 +103,7 @@ func Example() {
 	prioritizedTransformer := util.Prioritized(&transformer, 0)
 	// Setup goldmark with the markdown renderer and our transformer
 	gm := goldmark.New(
-		goldmark.WithRenderer(markdown.NewRenderer()),
+		goldmark.WithExtensions(markdown.NewExtension()),
 		goldmark.WithParserOptions(parser.WithASTTransformers(prioritizedTransformer)),
 	)
 	// Output buffer
