@@ -7,7 +7,29 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/yuin/goldmark"
 	"github.com/yuin/goldmark/extension"
+	"go.abhg.dev/goldmark/toc"
 )
+
+// TestTOCExtension tests compatibility with the goldmark-toc extension
+func TestTOCExtension(t *testing.T) {
+	assert := assert.New(t)
+	md := goldmark.New(
+		goldmark.WithExtensions(NewExtension(), &toc.Extender{}),
+	)
+	buf := bytes.Buffer{}
+	source := `# 1
+## 2
+### 3
+## 2
+### 3
+`
+
+	err := md.Convert([]byte(source), &buf)
+	assert.NoError(err)
+	actual := buf.String()
+	assert.Contains(actual, source, "Original markdown text should be retained")
+	assert.Greater(actual, source, "Converted text should be longer")
+}
 
 func TestTypographerExtensionDisabled(t *testing.T) {
 	assert := assert.New(t)
