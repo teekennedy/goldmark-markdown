@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/yuin/goldmark"
 	"github.com/yuin/goldmark/renderer"
 )
 
@@ -27,6 +28,7 @@ func TestRendererOptions(t *testing.T) {
 				WithThematicBreakStyle(ThematicBreakStyleDashed),
 				WithThematicBreakLength(ThematicBreakLengthMinimum),
 				WithNestedListLength(NestedListLengthMinimum),
+				WithTypographerSubstitutions(false),
 			},
 			NewConfig(),
 		},
@@ -48,6 +50,11 @@ func TestRendererOptions(t *testing.T) {
 
 			// Set options by passing them directly to NewRenderer
 			r := NewRenderer(tc.options...)
+			assert.Equal(tc.expected, r.config)
+
+			// Set options by passing them to the renderer extension
+			md := goldmark.New(goldmark.WithExtensions(NewExtension(tc.options...)))
+			r = md.Renderer().(*Renderer)
 			assert.Equal(tc.expected, r.config)
 
 			// Set options by name using AddOptions

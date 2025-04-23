@@ -94,8 +94,7 @@ func (r *Renderer) Render(w io.Writer, source []byte, n ast.Node) error {
 		r.nodeRendererFuncs[ast.KindLink] = r.renderLink
 		r.nodeRendererFuncs[ast.KindRawHTML] = r.renderRawHTML
 		r.nodeRendererFuncs[ast.KindText] = r.renderText
-		// TODO: add KindString
-		// r.nodeRendererFuncs[ast.KindString] = r.renderString
+		r.nodeRendererFuncs[ast.KindString] = r.renderString
 
 		for kind, fun := range r.nodeRendererFuncsTmp {
 			r.nodeRendererFuncs[kind] = r.transform(fun)
@@ -318,6 +317,14 @@ func (r *Renderer) renderText(node ast.Node, entering bool) ast.WalkStatus {
 		if n.SoftLineBreak() {
 			r.rc.writer.EndLine()
 		}
+	}
+	return ast.WalkContinue
+}
+
+func (r *Renderer) renderString(node ast.Node, entering bool) ast.WalkStatus {
+	n := node.(*ast.String)
+	if entering {
+		r.rc.writer.WriteBytes(n.Value)
 	}
 	return ast.WalkContinue
 }

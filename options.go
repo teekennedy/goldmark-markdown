@@ -11,6 +11,7 @@ type Config struct {
 	ThematicBreakStyle
 	ThematicBreakLength
 	NestedListLength
+	TypographerSubstitutions
 }
 
 // NewConfig returns a new Config with defaults and the given options.
@@ -268,4 +269,36 @@ func WithNestedListLength(style NestedListLength) interface {
 	Option
 } {
 	return &withNestedListLength{style}
+}
+
+// ============================================================================
+// TypographerSubstitutions Option
+// ============================================================================
+
+// optTypographerSubstitutions is an option name used in WithTypographerSubstitutions
+const optTypographerSubstitutions renderer.OptionName = "TypographerSubstitutions"
+
+// TypographerSubstitutions specifies whether characters should be substituted by the typographer extension.
+type TypographerSubstitutions bool
+
+type withTypographerSubstitutions struct {
+	value TypographerSubstitutions
+}
+
+func (o *withTypographerSubstitutions) SetConfig(c *renderer.Config) {
+	c.Options[optTypographerSubstitutions] = o.value
+}
+
+// SetMarkdownOption implements renderer.Option
+func (o *withTypographerSubstitutions) SetMarkdownOption(c *Config) {
+	c.TypographerSubstitutions = o.value
+}
+
+// WithTypographerSubstitutions is a functional option that determines whether characters should be substituted by the typographer extension.
+// This setting has no effect unless the typographer extension is added to the goldmark.Markdown object.
+func WithTypographerSubstitutions(enabled TypographerSubstitutions) interface {
+	renderer.Option
+	Option
+} {
+	return &withTypographerSubstitutions{enabled}
 }
