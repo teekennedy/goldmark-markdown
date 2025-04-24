@@ -622,6 +622,24 @@ func TestRenderedOutput(t *testing.T) {
 - List item 2
 `,
 		},
+		{
+			"Blockquote paragraph",
+			nil,
+			`> paragraph 1
+>
+> paragraph 2
+
+> paragraph 3
+> > paragraph 4
+`,
+			`> paragraph 1
+>
+> paragraph 2
+
+> paragraph 3
+> > paragraph 4
+`,
+		},
 	}
 
 	for _, tc := range testCases {

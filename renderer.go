@@ -82,7 +82,7 @@ func (r *Renderer) Render(w io.Writer, source []byte, n ast.Node) error {
 		r.nodeRendererFuncs[ast.KindHTMLBlock] = r.chainRenderers(r.renderBlockSeparator, r.renderHTMLBlock)
 		r.nodeRendererFuncs[ast.KindList] = r.chainRenderers(r.renderBlockSeparator, r.renderList)
 		r.nodeRendererFuncs[ast.KindListItem] = r.chainRenderers(r.renderBlockSeparator, r.renderListItem)
-		r.nodeRendererFuncs[ast.KindParagraph] = r.renderBlockSeparator
+		r.nodeRendererFuncs[ast.KindParagraph] = r.chainRenderers(r.renderBlockSeparator, r.renderParagraph)
 		r.nodeRendererFuncs[ast.KindTextBlock] = r.renderBlockSeparator
 		r.nodeRendererFuncs[ast.KindThematicBreak] = r.chainRenderers(r.renderBlockSeparator, r.renderThematicBreak)
 
@@ -140,6 +140,17 @@ func (r *Renderer) renderBlockSeparator(node ast.Node, entering bool) ast.WalkSt
 	} else {
 		// Flush line buffer to complete line written by previous block
 		r.rc.writer.FlushLine()
+	}
+	return ast.WalkContinue
+}
+
+func (r *Renderer) renderParagraph(node ast.Node, entering bool) ast.WalkStatus {
+	if entering {
+		// Special handling of paragraphs inside blockquotes, because they always set HasBlankPreviousLines to false
+		prev := node.PreviousSibling()
+		if prev != nil && ast.IsParagraph(prev) && node.Parent().Kind() == ast.KindBlockquote {
+			r.rc.writer.EndLine()
+		}
 	}
 	return ast.WalkContinue
 }
