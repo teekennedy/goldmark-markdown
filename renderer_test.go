@@ -274,6 +274,18 @@ func TestRenderedOutput(t *testing.T) {
 			"*foo`*`\n",
 		},
 		{
+			"Code span trailing space corruption issue 33",
+			nil,
+			"- test (` ``` `).\n- test `code`.",
+			"- test (` ``` `).\n- test `code`.\n",
+		},
+		{
+			"Code span containing only one backtick",
+			nil,
+			"`` ` ``",
+			"`` ` ``\n",
+		},
+		{
 			"Codespan backticks have equal precedence with HTML",
 			nil,
 			"`<a href=\"`\">`",

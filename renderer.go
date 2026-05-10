@@ -463,7 +463,8 @@ func (r *Renderer) renderCodeSpan(node ast.Node, entering bool) ast.WalkStatus {
 			if i == 0 {
 				beginsWithSpace = unicode.IsSpace(c)
 				beginsWithBackTick = c == '`'
-			} else if i == len(contents)-1 {
+			}
+			if i == len(contents)-1 {
 				endsWithSpace = unicode.IsSpace(c)
 				endsWithBackTick = c == '`'
 			}
@@ -481,8 +482,12 @@ func (r *Renderer) renderCodeSpan(node ast.Node, entering bool) ast.WalkStatus {
 			backtickLengths = append(backtickLengths, count)
 		}
 
+		r.rc.codeSpanContext = codeSpanContext{
+			backtickLength: 1, // Default fallback
+		}
+
 		// Surround the codespan with the minimum number of backticks required to contain the span.
-		for i := 1; i <= len(contentBytes); i++ {
+		for i := 1; i <= len(contentBytes)+1; i++ {
 			if !slices.Contains(backtickLengths, i) {
 				r.rc.codeSpanContext.backtickLength = i
 				break
