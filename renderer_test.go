@@ -585,6 +585,24 @@ func TestRenderedOutput(t *testing.T) {
 			"[link](/uri \"title\")",
 			"[link](/uri \"title\")\n",
 		},
+		{
+			"Referencial Link (full)",
+			nil,
+			"[link][l]\n\nsome other text\n\n[l]: /url",
+			"[link][l]\n\nsome other text\n\n[l]: /url\n",
+		},
+		{
+			"Referencial Link (collapsed)",
+			nil,
+			"[link][]\n\nsome other text\n\n[link]: /url",
+			"[link][]\n\nsome other text\n\n[link]: /url\n",
+		},
+		{
+			"Referencial Link (shortcut)",
+			nil,
+			"[link]\n\nsome other text\n\n[link]: /url",
+			"[link]\n\nsome other text\n\n[link]: /url\n",
+		},
 		// Images
 		{
 			"Empty image",
@@ -603,6 +621,24 @@ func TestRenderedOutput(t *testing.T) {
 			nil,
 			"![image](/uri \"title\")",
 			"![image](/uri \"title\")\n",
+		},
+		{
+			"Referencial image (full)",
+			nil,
+			"![alt][l]\n\nsome other text\n\n[l]: /img.png \"title\"",
+			"![alt][l]\n\nsome other text\n\n[l]: /img.png \"title\"\n",
+		},
+		{
+			"Referencial image (collapsed)",
+			nil,
+			"![alt][]\n\nsome other text\n\n[alt]: /img.png",
+			"![alt][]\n\nsome other text\n\n[alt]: /img.png\n",
+		},
+		{
+			"Referencial image (shortcut)",
+			nil,
+			"![alt]\n\nsome other text\n\n[alt]: /img.png",
+			"![alt]\n\nsome other text\n\n[alt]: /img.png\n",
 		},
 		{
 			"Hard line break",

@@ -95,6 +95,7 @@ func (r *Renderer) Render(w io.Writer, source []byte, n ast.Node) error {
 		r.nodeRendererFuncs[ast.KindRawHTML] = r.renderRawHTML
 		r.nodeRendererFuncs[ast.KindText] = r.renderText
 		r.nodeRendererFuncs[ast.KindString] = r.renderString
+		r.nodeRendererFuncs[ast.KindLinkReferenceDefinition] = r.chainRenderers(r.renderBlockSeparator, r.renderLinkReferenceDefinition)
 
 		for kind, fun := range r.nodeRendererFuncsTmp {
 			r.nodeRendererFuncs[kind] = r.transform(fun)
@@ -364,13 +365,54 @@ func (r *Renderer) renderLines(node ast.Node, entering bool) ast.WalkStatus {
 
 func (r *Renderer) renderLink(node ast.Node, entering bool) ast.WalkStatus {
 	n := node.(*ast.Link)
+	if n.Reference != nil {
+		return r.renderReferenceLinkCommon(n.Reference, entering)
+	}
 	return r.renderLinkCommon(n.Title, n.Destination, entering)
+}
+
+func (r *Renderer) renderReferenceLinkCommon(reference *ast.ReferenceLink, entering bool) ast.WalkStatus {
+	if entering {
+		r.rc.writer.WriteBytes([]byte("["))
+	} else {
+		switch reference.Type {
+		case ast.ReferenceLinkCollapsed:
+			r.rc.writer.WriteBytes([]byte("][]"))
+		case ast.ReferenceLinkFull:
+			r.rc.writer.WriteBytes([]byte("]["))
+			r.rc.writer.WriteBytes(reference.Value)
+			r.rc.writer.WriteBytes([]byte("]"))
+		case ast.ReferenceLinkShortcut:
+			r.rc.writer.WriteBytes([]byte("]"))
+		}
+	}
+	return ast.WalkContinue
+}
+
+func (r *Renderer) renderLinkReferenceDefinition(node ast.Node, entering bool) ast.WalkStatus {
+	if !entering {
+		return ast.WalkContinue
+	}
+	n := node.(*ast.LinkReferenceDefinition)
+	r.rc.writer.WriteBytes([]byte("["))
+	r.rc.writer.WriteBytes(n.Label)
+	r.rc.writer.WriteBytes([]byte("]: "))
+	r.rc.writer.WriteBytes(n.Destination)
+	if len(n.Title) > 0 {
+		r.rc.writer.WriteBytes([]byte(" \""))
+		r.rc.writer.WriteBytes(n.Title)
+		r.rc.writer.WriteBytes([]byte("\""))
+	}
+	return ast.WalkContinue
 }
 
 func (r *Renderer) renderImage(node ast.Node, entering bool) ast.WalkStatus {
 	n := node.(*ast.Image)
 	if entering {
 		r.rc.writer.WriteBytes([]byte("!"))
+	}
+	if n.Reference != nil {
+		return r.renderReferenceLinkCommon(n.Reference, entering)
 	}
 	return r.renderLinkCommon(n.Title, n.Destination, entering)
 }
