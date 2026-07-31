@@ -5,7 +5,7 @@ go 1.23.2
 require (
 	github.com/rhysd/go-fakeio v1.0.0
 	github.com/stretchr/testify v1.9.0
-	github.com/yuin/goldmark v1.8.4
+	github.com/yuin/goldmark v1.8.5
 	go.abhg.dev/goldmark/toc v0.11.0
 )
 
