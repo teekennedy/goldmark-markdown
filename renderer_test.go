@@ -523,10 +523,22 @@ func TestRenderedOutput(t *testing.T) {
 			"\tcode 1\n---\n\tcode 2\n---\n\n\tcode 3\n",
 		},
 		{
-			"Fenced code block separator",
+			"Fenced Code Block separator",
 			nil,
 			"```\ncode 1\n```\n```\ncode 2\n```\n\n```\ncode 3\n```",
 			"```\ncode 1\n```\n```\ncode 2\n```\n\n```\ncode 3\n```\n",
+		},
+		{
+			"Fenced Code Block separator in blockquote",
+			nil,
+			"> ```\n> code 1\n> ```\n> ```\n> code 2\n> ```",
+			"> ```\n> code 1\n> ```\n> ```\n> code 2\n> ```\n",
+		},
+		{
+			"Fenced Code Block separator in list",
+			nil,
+			"- ```\n  code 1\n  ```\n  ```\n  code 2\n  ```",
+			"- ```\n  code 1\n  ```\n  ```\n  code 2\n  ```\n",
 		},
 		{
 			"HTML block separator",

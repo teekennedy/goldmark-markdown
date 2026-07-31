@@ -135,7 +135,7 @@ func (r *Renderer) chainRenderers(renderers ...nodeRenderer) nodeRenderer {
 func (r *Renderer) renderBlockSeparator(node ast.Node, entering bool) ast.WalkStatus {
 	if entering {
 		// Add blank previous line if applicable
-		if node.PreviousSibling() != nil && node.HasBlankPreviousLines() {
+		if node.PreviousSibling() != nil && r.hasBlankPreviousLines(node) {
 			r.rc.writer.EndLine()
 		}
 	} else {
@@ -143,6 +143,25 @@ func (r *Renderer) renderBlockSeparator(node ast.Node, entering bool) ast.WalkSt
 		r.rc.writer.FlushLine()
 	}
 	return ast.WalkContinue
+}
+
+func (r *Renderer) hasBlankPreviousLines(node ast.Node) bool {
+	prev := node.PreviousSibling()
+	fcb, ok := prev.(*ast.FencedCodeBlock)
+	// If the previous node wasn't a fenced block, we can just use the normal
+	// behaviour
+	if !ok || fcb.Lines().Len() == 0 || node.Pos() < 0 {
+		return node.HasBlankPreviousLines()
+	}
+
+	// For a fenced block code, though, it seems like goldmark has a minor
+	// incorrectness in v1.8 where a blank line is reported even if it does not
+	// exist. So we manually look the gap between the end of the previous line
+	// and the current node's position, checking if there's a blank line in
+	// there:
+	previousLine := fcb.Lines().At(fcb.Lines().Len() - 1)
+	gap := r.rc.source[previousLine.Stop:node.Pos()]
+	return bytes.Count(gap, []byte{'\n'}) > 1
 }
 
 func (r *Renderer) renderAutoLink(node ast.Node, entering bool) ast.WalkStatus {
