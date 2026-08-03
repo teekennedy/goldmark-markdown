@@ -18,7 +18,7 @@ import (
 // pattern into a link.
 type RegexpLinkTransformer struct {
 	LinkPattern *regexp.Regexp
-	ReplUrl     []byte
+	ReplURL     []byte
 }
 
 // LinkifyText finds all LinkPattern matches in the given Text node and replaces them with Link
@@ -42,7 +42,7 @@ func (t *RegexpLinkTransformer) LinkifyText(node *ast.Text, source []byte) {
 	// Insert Link node
 	link := ast.NewLink()
 	link.AppendChild(link, ast.NewTextSegment(lSegment))
-	link.Destination = t.LinkPattern.ReplaceAll(lSegment.Value(source), t.ReplUrl)
+	link.Destination = t.LinkPattern.ReplaceAll(lSegment.Value(source), t.ReplURL)
 	parent.InsertBefore(parent, node, link)
 
 	// Update original node to represent the text after the link (may be empty)
@@ -77,7 +77,6 @@ func (t *RegexpLinkTransformer) Transform(node *ast.Document, reader text.Reader
 
 		return ast.WalkContinue, nil
 	})
-
 	if err != nil {
 		log.Fatal("Error encountered while transforming AST:", err)
 	}
@@ -98,7 +97,7 @@ func Example() {
 	// Instantiate our transformer
 	transformer := RegexpLinkTransformer{
 		LinkPattern: regexp.MustCompile(`TICKET-\d+`),
-		ReplUrl:     []byte("https://example.com/TICKET?query=$0"),
+		ReplURL:     []byte("https://example.com/TICKET?query=$0"),
 	}
 	// Goldmark supports multiple AST transformers and runs them sequentially in order of priority.
 	prioritizedTransformer := util.Prioritized(&transformer, 0)

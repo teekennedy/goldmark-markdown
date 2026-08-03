@@ -64,7 +64,7 @@ pattern:
 // pattern into a link.
 type RegexpLinkTransformer struct {
 	LinkPattern *regexp.Regexp
-	ReplUrl     []byte
+	ReplURL     []byte
 }
 ```
 
@@ -116,7 +116,7 @@ nodes for before and after the link, as well as the node for the link itself:
 
 ```go
 // LinkifyText finds all LinkPattern matches in the given Text node and replaces them with Link
-// nodes that point to ReplUrl.
+// nodes that point to ReplURL.
 func (t *RegexpLinkTransformer) LinkifyText(node *ast.Text, source []byte) {
 	parent := node.Parent()
 	tSegment := node.Segment
@@ -136,7 +136,7 @@ func (t *RegexpLinkTransformer) LinkifyText(node *ast.Text, source []byte) {
 	// Insert Link node
 	link := ast.NewLink()
 	link.AppendChild(link, ast.NewTextSegment(lSegment))
-	link.Destination = t.LinkPattern.ReplaceAll(lSegment.Value(source), t.ReplUrl)
+	link.Destination = t.LinkPattern.ReplaceAll(lSegment.Value(source), t.ReplURL)
 	parent.InsertBefore(parent, node, link)
 
 	// Update original node to represent the text after the link (may be empty)
@@ -157,7 +157,7 @@ goldmark object.
 ```go
 transformer := RegexpLinkTransformer{
   LinkPattern: regexp.MustCompile(`TICKET-\d+`),
-  ReplUrl:     []byte("https://example.com/TICKET?query=$0"),
+  ReplURL:     []byte("https://example.com/TICKET?query=$0"),
 }
 // Goldmark supports multiple AST transformers and runs them sequentially in order of priority.
 prioritizedTransformer := util.Prioritized(&transformer, 0)

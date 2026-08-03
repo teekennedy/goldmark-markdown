@@ -298,12 +298,16 @@ func (r *Renderer) renderList(node ast.Node, entering bool) ast.WalkStatus {
 }
 
 func (r *Renderer) renderListItem(node ast.Node, entering bool) ast.WalkStatus {
+	// A parent List Node should have appended a listContext to r.rc.lists
+	if len(r.rc.lists) == 0 {
+		return ast.WalkStop
+	}
 	if entering {
 		var itemPrefix []byte
 		l := r.rc.lists[len(r.rc.lists)-1]
 
 		if l.list.IsOrdered() {
-			itemPrefix = append(itemPrefix, []byte(fmt.Sprint(l.num))...)
+			itemPrefix = fmt.Append(itemPrefix, l.num)
 			r.rc.lists[len(r.rc.lists)-1].num += 1
 		}
 		itemPrefix = append(itemPrefix, l.list.Marker, ' ')
