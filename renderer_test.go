@@ -83,6 +83,18 @@ func TestCustomRenderers(t *testing.T) {
 	t.Log(buf.String())
 }
 
+// TestRenderListItemOnly tests rendering a ListItem Node without a parent List
+func TestRenderListItemOnly(t *testing.T) {
+	renderer := NewRenderer()
+	buf := bytes.Buffer{}
+	li := ast.NewListItem(0)
+
+	err := renderer.Render(&buf, nil, li)
+	assert.NoError(t, err)
+	assert.Zero(t, buf.Len())
+	t.Log(buf.String())
+}
+
 // TestRenderedOutput tests that the renderer produces the expected output for all test cases
 func TestRenderedOutput(t *testing.T) {
 	testCases := []struct {
